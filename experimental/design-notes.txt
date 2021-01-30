@@ -1,0 +1,112 @@
+I started comparing OpenTelemetry metrics to other metric APIs and wanted to jot down observations and questions that came up along the way:
+
+Micrometer (MM) - https://micrometer.io/docs/concepts
+
+1. Do the names that OpenTelemetry chose match industry conventions? 
+For the MM library there are different types of Meters such as timers, counters, gauges, etc. Depending on their type, meters implement operations such
+as increment() and set(). Meters are associated with a single set of tags.
+For the OT spec Meters are factories that create instruments and it is the instruments that have the data collecting APIs such as Add() or Record(). Instruments
+aren't associated with a specific set of tags (labels) unless they are first bound.
+As best I can tell the best conceptual mapping is that MM's Meter == OT's bound instrument. It doesn't worry me too much that OT would use a different
+name for the same concept, what worries me more is if OT is reusing the same names but altering the concept they apply to.
+
+2. MM has no equivalent abstraction for OT's Meter or Instrument. It goes straight from MeterProvider (MeterRegistry in MM-terminology) to a bound-instrument 
+(Meter in MM-terminology). There is an even simpler case for people using a default global registry where they can use static functions defined in the Metrics class.
+If MM has been succesful with these simpler abstractions it raises the question what value is OT getting from its more complex 4 layers of
+abstraction (MeterProvider->Meter->Instrument->BoundInstrument)?
+
+3. MM landed on a different set of instrument types than OT did. It would be good to understand why we believe OT's instrument set is the right set to pick?
+MM has Timer, Counter, Gauge, DistributionSummary, LongTaskTimer, FunctionCounter, FunctionTimer, and TimeGauge. I think the conceptual match up is roughly:
+Timer                   NA
+Counter                 Counter
+DistributionSummary     ValueRecorder
+Gauge                   ValueObserver
+LongTaskTimer           NA
+FunctionCounter         SumObserver
+FunctionTimer           NA
+TimeGauge               NA
+NA                      UpDownCounter
+NA                      UpDownSumObserver
+
+
+4. MM has a different model for observation/asynchronicity than OT. MM has the Meter (in MM terminology) provide a callback function that when invoked returns
+the value of the measurement for that measurement interval. OT also uses a callback but the callback is expect to invoke a Observe() API to record potentially
+many data points and has void return type. I think the additional complexity in the OT model is a side-effect of the design decision to have unbound instruments
+that might need to set the value of potentially many LabelSets whereas in MM all Meters (in MM terminology) are bound to a single set of labels and will
+have exactly 1 data point per time period. Does the value of unbound instruments justify this additional complexity?
+
+5. MM has no batch mode for logging metrics, how valuable of a feature is this given its additional complexity to implement? Is it purely a performance optimization
+or is there a scenario where the atomicity of the measurements matter?
+
+6. MM has a lot of API surface dedicated to configuring Meters (in MM terminology) and tags. I am guessing this is the kind of functionality that would be sitting in OT's
+Views API?
+
+
+IfxMetricsExtensions:
+
+Is there a better doc than https://genevamondocs.azurewebsites.net/collect/instrument/ifx/ifxextensions.html? This page seems to assume I am already pretty familiar
+with Geneva metrics and only describes some specific addendums.
+
+Prometheus.NET - https://github.com/prometheus-net/prometheus-net
+
+1. Naming - What MM calls Meters and OT calls bound instruments, Prometheus calls Metrics.
+2. Similar to MM and different from OT, metrics can be created directly from static functions on a global Metrics class.
+3. Prometheus also has different metric types (instrument types in OT terminology). It has Counter, Guage, Summary, and Histogram. The best mapping appears to be:
+Counter       Counter
+Gauge         UpDownCounter or ValueRecorder?
+Summary       ValueRecorder
+Histogram     ValueRecorder
+NA            *Observer
+
+4. Prometheus uses Observe() API where OT uses Record() API. Prometheus doesn't appear to have asynchronous/callback style APIs.
+
+5. Prometheus has histogram and summaries configured with measurement precision and intervals at the point they are defined. OT and MM configure this via a
+separate configuration API.
+
+6. Prometheus has various helper utilities like NewTimer() that that handles details of timing code and then inputs the timed value into Histogram. This
+appears to avoid needing to declare a dedicated Timer Meter as MM did.
+
+
+
+AppMetrics - https://www.app-metrics.io/
+
+1. Naming - What OT calls instruments, AppMetrics calls metrics
+2. AppMetrics has an IMetrics interface somewhat similar to MeterProvider or MetricsRegistry in other libraries, however the provider isn't responsible for directly
+creating the API objects that represent metrics. Instead Metric definitions are created independent from any builder (similar to a LabelSet) and then passed as an
+argument to a measurement recording function. For example:
+IMetrics metrics = ...
+var counter = new CounterOptions { Name = "my_counter" } // this defines the metric
+metrics.Measure.Counter.Increment(counter); // increments the value of the metric stored in this IMetrics
+
+3. Metrics are never bound. Tags can be provided at the time a measurement is captured and merged with tags set via global tags in the IMetrics interface
+
+4. The metrics types are Counter, Gauge, Histogram, Meter, Timer, and Apdex (this is the 3rd distinct definition of the term Meter I've seen so far)
+Mapping is roughly
+Counter     UpDownCounter
+Gauge       ValueObserver or UpDownCounterObserver?
+Histogram   ValueRecorder
+Meter       NA  (it is close to a Counter, but it displays two stats: aggregate count and rate)
+Timer       NA
+Apdex       NA
+NA          Counter
+NA          CounterObserver
+
+
+OpenCensus - https://opencensus.io/stats/
+
+1. Naming - Instruments in OT are approximately Measures in OpenCensus. However Measures only define the name and units of measure, not the APIs that capture data.
+2. Unlike most other libraries, OpenCensus doesn't use different instrument types to imply intended aggregation for the collected data. There are only two types of measure,
+Double and long. The typical distinction between counters, gauges, histograms, etc are defined separately as aggregations using the View API.
+3. Measures are created directly from a static factory method and they are not associated with any particular collection pipeline. A separate StatsRecorder object provides
+the data collection API.
+4. The StatsRecorder collection API builds up a list of measurements first, then commits it with a single API call. I didn't see any simpler option presented in the samples
+to submit single values.
+5. There was no option to do asynchronous collection
+
+ApplicationInsights - https://docs.microsoft.com/en-us/azure/azure-monitor/app/get-metric
+
+1. Naming - Instruments in OT are called Metrics in AI. 
+2. AI doesn't mention different kinds of metrics, as best I can tell they only have one aggregation mode and it computes several statistics: sum, count, min, max, and stddev.
+Viewing one metric as a sum and a different metric as an average requires the portal user to configure their view in the portal.
+3. AI doesn't have a bound instrument analog, but it does allow specifying labels dynamically in the call to Metric.TrackValue().
+4. There are no asynchronous collection APIs.
