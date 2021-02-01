@@ -6,9 +6,9 @@ namespace MyLibrary
     {
         Counter counter;
 
-        public Library()
+        public Library(string name)
         {
-            counter = new Counter("MyLibrary", "requests");
+            counter = new Counter($"MyLibrary_{name}", "requests");
         }
 
         public void DoOperation()
