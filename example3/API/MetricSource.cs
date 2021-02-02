@@ -4,13 +4,21 @@ namespace OpenTelmetry.Api
 {
     public abstract class MetricSource
     {
+        protected MetricSource oldSource = null;
+
         public MetricSource()
         {
-            CounterBase.RegisterSDK(this);
         }
 
-        public abstract void OnCreate(CounterBase counter);
+        public void RegisterSDK()
+        {
+            MetricBase.RegisterSDK(this);
+        }
 
-        public abstract bool Record(CounterBase counter, int num);
+        public abstract bool OnCreate(MetricBase counter);
+
+        public abstract bool OnRecord(MetricBase counter, int num);
+
+        public abstract bool OnRecord(MetricBase counter, double num);
     }
 }

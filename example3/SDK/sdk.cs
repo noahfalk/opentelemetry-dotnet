@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Threading;
 using OpenTelmetry.Api;
 
 namespace OpenTelmetry.Sdk
@@ -8,16 +9,24 @@ namespace OpenTelmetry.Sdk
     public class SampleSdk : MetricSource
     {
         private readonly object lockCounters = new();
-        private List<CounterBase> counters = new();
+        private List<MetricBase> counters = new();
 
         private string name;
         private int collectPeriod_ms = 2000;
         private bool isBuilt = false;
         private bool isExitRequest = false;
 
+        private List<string> namespaceExclusionList = new();
+
         public SampleSdk Name(string name)
         {
             this.name = name;
+            return this;
+        }
+
+        public SampleSdk AddNamespaceExclusion(string ns)
+        {
+            namespaceExclusionList.Add(ns);
             return this;
         }
 
@@ -40,6 +49,8 @@ namespace OpenTelmetry.Sdk
                 }
             });
 
+            base.RegisterSDK();
+
             return this;
         }
 
@@ -55,13 +66,33 @@ namespace OpenTelmetry.Sdk
             Task.Delay(2 * collectPeriod_ms).Wait();
         }
 
-        public override bool Record(CounterBase counter, int num)
+        public override bool OnCreate(MetricBase counter)
         {
-            if (isBuilt)
+            lock (lockCounters)
             {
-                if (counter.sdkdata is CounterData data)
+                counters.Add(counter);
+                counter.state = new SumDataState();
+            }
+
+            return true;
+        }
+
+        public override bool OnRecord(MetricBase counter, int num)
+        {
+            // TODO: Start with a SumData<int> and promoted to SumData<double> as necessary.
+
+            return OnRecord(counter, (double) num);
+        }
+
+        public override bool OnRecord(MetricBase counter, double num)
+        {
+            // TODO: Start with a SumData<int> and promoted to SumData<double> as necessary.
+
+            if (isBuilt && counter.Enabled)
+            {
+                if (counter.state is SumDataState data)
                 {
-                    lock (data.l)
+                    lock (data.lockSumData)
                     {
                         data.count++;
                         data.sum += num;
@@ -76,30 +107,21 @@ namespace OpenTelmetry.Sdk
             return false;
         }
 
-        public override void OnCreate(CounterBase counter)
-        {
-            counter.sdkdata = new CounterData();
-            lock (lockCounters)
-            {
-                counters.Add(counter);
-            }
-        }
-
-        public void Collect()
+        private void Collect()
         {
             if (isBuilt)
             {
                 foreach (var counter in counters)
                 {
-                    if (counter.sdkdata is CounterData data)
+                    if (counter.state is SumDataState data)
                     {
                         if (data.count > 0)
                         {
-                            counter.sdkdata = new CounterData();
+                            counter.state = new SumDataState();
 
-                            var ns = counter.GetNameSpace();
-                            var name = counter.GetName();
-                            var type = counter.GetCounterType();
+                            var ns = counter.MetricNamespace;
+                            var name = counter.MetricName;
+                            var type = counter.MetricType;
 
                             Console.WriteLine($"[{type}]{ns}:{name} = n={data.count}, sum={data.sum}, min={data.min}, max={data.max}");
                         }
@@ -107,15 +129,15 @@ namespace OpenTelmetry.Sdk
                 }
             }
         }
-    }
 
-    public class CounterData
-    {
-        public readonly object l = new();
+        public class SumDataState : MetricState
+        {
+            public readonly object lockSumData = new();
 
-        public int count = 0;
-        public int sum = 0;
-        public int max = 0;
-        public int min = 0;
+            public int count = 0;
+            public double sum = 0;
+            public double max = 0;
+            public double min = 0;
+        }
     }
 }

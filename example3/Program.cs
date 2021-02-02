@@ -16,7 +16,9 @@ namespace example3
             var sdk = new SampleSdk()
                 .Name("MyProgram")
                 .SetCollectionPeriod(2000)
-                .Build();
+                //.AddNamespaceExclusion("MyLibrary/Library_2")
+                .Build()
+                ;
 
             Task t1 = Task.Run(async () => {
                 var lib = new Library("Library_1");
@@ -37,8 +39,8 @@ namespace example3
             });
 
             await Task.Delay(5000);
-            sdk.Stop();
 
+            sdk.Stop();
             await t1;
             await t2;
 
