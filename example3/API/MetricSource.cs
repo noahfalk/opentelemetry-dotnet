@@ -15,10 +15,10 @@ namespace OpenTelmetry.Api
             MetricBase.RegisterSDK(this);
         }
 
-        public abstract bool OnCreate(MetricBase counter);
+        public abstract bool OnCreate(MetricBase counter, LabelSet labels);
 
-        public abstract bool OnRecord(MetricBase counter, int num);
+        public abstract bool OnRecord(MetricBase counter, int num, LabelSet boundLabels, LabelSet labels);
 
-        public abstract bool OnRecord(MetricBase counter, double num);
+        public abstract bool OnRecord(MetricBase counter, double num, LabelSet boundLabels, LabelSet labels);
     }
 }

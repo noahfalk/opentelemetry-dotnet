@@ -16,37 +16,40 @@ namespace OpenTelmetry.Api
 
         public string MetricType { get; }
 
+        public LabelSet Labels { get; }
+
         public virtual bool Enabled { get; set; }
 
         public MetricState state { get; set; }
 
-        protected MetricBase(string ns, string name, string type)
+        protected MetricBase(string ns, string name, string type, LabelSet labels)
         {
             MetricName = name;
             MetricNamespace = ns;
             MetricType = type;
+            Labels = labels;
 
             var sources = registered;
             if (sources.Count > 0)
             {
                 source = sources[sources.Count-1];
-                Enabled = source.OnCreate(this);
+                Enabled = source.OnCreate(this, labels);
             }
         }
 
-        protected void RecordMetricData(int num)
+        protected void RecordMetricData(int num, LabelSet labels)
         {
             if (Enabled)
             {
-                source?.OnRecord(this, num);
+                source?.OnRecord(this, num, Labels, labels);
             }
         }
 
-        protected void RecordMetricData(double num)
+        protected void RecordMetricData(double num, LabelSet labels)
         {
             if (Enabled)
             {
-                source?.OnRecord(this, num);
+                source?.OnRecord(this, num, Labels, labels);
             }
         }
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Text;
 using OpenTelmetry.Api;
 
 namespace OpenTelmetry.Sdk
@@ -66,7 +67,7 @@ namespace OpenTelmetry.Sdk
             Task.Delay(2 * collectPeriod_ms).Wait();
         }
 
-        public override bool OnCreate(MetricBase counter)
+        public override bool OnCreate(MetricBase counter, LabelSet labels)
         {
             lock (lockCounters)
             {
@@ -77,27 +78,72 @@ namespace OpenTelmetry.Sdk
             return true;
         }
 
-        public override bool OnRecord(MetricBase counter, int num)
+        public override bool OnRecord(MetricBase counter, int num, LabelSet boundLabels, LabelSet labels)
         {
             // TODO: Start with a SumData<int> and promoted to SumData<double> as necessary.
 
-            return OnRecord(counter, (double) num);
+            return OnRecord(counter, (double) num, boundLabels, labels);
         }
 
-        public override bool OnRecord(MetricBase counter, double num)
+        private List<string> ExpandLabels(LabelSet boundLabels, LabelSet labels)
         {
-            // TODO: Start with a SumData<int> and promoted to SumData<double> as necessary.
+            List<string> label_aggregates = new();
 
+            label_aggregates.Add("_Total");
+
+            var lbl = labels.GetKeyValues();
+            for (int n = 0; n < lbl.Length; n += 2)
+            {
+                if (lbl[n] == "OperNum")
+                {
+                    label_aggregates.Add($"{lbl[n]}={lbl[n+1]}");
+                }
+            }
+
+            lbl = boundLabels.GetKeyValues();
+            for (int n = 0; n < lbl.Length; n += 2)
+            {
+                if (lbl[n] == "LibraryInstanceName")
+                {
+                    label_aggregates.Add($"{lbl[n]}={lbl[n+1]}");
+                }
+            }
+
+            return label_aggregates;
+        }
+
+        public override bool OnRecord(MetricBase counter, double num, LabelSet boundLabels, LabelSet labels)
+        {
             if (isBuilt && counter.Enabled)
             {
                 if (counter.state is SumDataState data)
                 {
-                    lock (data.lockSumData)
+                    var label_aggregates = ExpandLabels(boundLabels, labels);
+
+                    lock (data.lockState)
                     {
-                        data.count++;
-                        data.sum += num;
-                        data.min = Math.Min(data.min, num);
-                        data.max = Math.Max(data.max, num);
+                        foreach (var key in label_aggregates)
+                        {
+                            CountSumMinMax aggdata;
+                            if (!data.aggregates.TryGetValue(key, out aggdata))
+                            {
+                                aggdata = new CountSumMinMax();
+                                data.aggregates[key] = aggdata;
+                            }
+
+                            aggdata.count++;
+                            aggdata.sum += num;
+                            if (aggdata.count == 1)
+                            {
+                                aggdata.min = num;
+                                aggdata.max = num;
+                            }
+                            else
+                            {
+                                aggdata.min = Math.Min(aggdata.min, num);
+                                aggdata.max = Math.Max(aggdata.max, num);
+                            }
+                        }
                     }
 
                     return true;
@@ -111,19 +157,33 @@ namespace OpenTelmetry.Sdk
         {
             if (isBuilt)
             {
+                StringBuilder sb = new StringBuilder();
+
                 foreach (var counter in counters)
                 {
+                    sb.Clear();
+
                     if (counter.state is SumDataState data)
                     {
-                        if (data.count > 0)
+                        if (data.aggregates.Count > 0)
                         {
-                            counter.state = new SumDataState();
+                            var oldLabels = Interlocked.Exchange(ref data.aggregates, new Dictionary<string, CountSumMinMax>());
 
                             var ns = counter.MetricNamespace;
                             var name = counter.MetricName;
                             var type = counter.MetricType;
+                            var counterLabels = counter.Labels.GetKeyValues();
 
-                            Console.WriteLine($"[{type}]{ns}:{name} = n={data.count}, sum={data.sum}, min={data.min}, max={data.max}");
+                            sb.AppendLine($"{type}/{ns}/{name}/[{String.Join(",", counterLabels)}]");
+
+                            foreach (var kv in oldLabels)
+                            {
+                                var labels = kv.Key;
+                                var cnt = kv.Value;
+                                sb.AppendLine($"  {labels} = n={cnt.count}, sum={cnt.sum}, min={cnt.min}, max={cnt.max}");
+                            }
+
+                            Console.WriteLine(sb.ToString());
                         }
                     }
                 }
@@ -132,8 +192,12 @@ namespace OpenTelmetry.Sdk
 
         public class SumDataState : MetricState
         {
-            public readonly object lockSumData = new();
+            public readonly object lockState = new();
+            public Dictionary<string, CountSumMinMax> aggregates = new();
+        }
 
+        public class CountSumMinMax
+        {
             public int count = 0;
             public double sum = 0;
             public double max = 0;
