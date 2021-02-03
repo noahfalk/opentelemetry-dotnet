@@ -17,9 +17,20 @@ namespace MyLibrary
         public void DoOperation()
         {
             var labels = new LabelSet( new string[] { "OperNum", $"{count%3}" });
+
             counter.Add(10.1, labels);
 
             counter.Add(2);
+
+
+            // Example with Batching
+
+            var guage = new Counter("MyLibrary", "operations");
+
+            new MetricBase.BatchBuilder(labels)
+                .Add(counter, 100)
+                .Add(guage, 10)
+                .Record();
 
             count++;
         }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Text;
+using System.Linq;
 using OpenTelmetry.Api;
 
 namespace OpenTelmetry.Sdk
@@ -12,12 +13,17 @@ namespace OpenTelmetry.Sdk
         private readonly object lockCounters = new();
         private List<MetricBase> counters = new();
 
+        private readonly object lockAggregateDict = new();
+        private Dictionary<string, AggregationState> aggregateDict = new();
+
         private string name;
         private int collectPeriod_ms = 2000;
         private bool isBuilt = false;
         private bool isExitRequest = false;
 
         private List<string> namespaceExclusionList = new();
+
+        private Task collectTask;
 
         public SampleSdk Name(string name)
         {
@@ -42,7 +48,7 @@ namespace OpenTelmetry.Sdk
             isBuilt = true;
 
             // Start Periodic Collection Task
-            Task.Run(async () => {
+            collectTask = Task.Run(async () => {
                 while (!isExitRequest)
                 {
                     await Task.Delay(this.collectPeriod_ms);
@@ -64,7 +70,7 @@ namespace OpenTelmetry.Sdk
         {
             isExitRequest = true;
 
-            Task.Delay(2 * collectPeriod_ms).Wait();
+            collectTask.Wait();
         }
 
         public override bool OnCreate(MetricBase counter, LabelSet labels)
@@ -78,65 +84,82 @@ namespace OpenTelmetry.Sdk
             return true;
         }
 
-        private List<string> ExpandLabels(LabelSet boundLabels, LabelSet labels)
+        private List<Tuple<string,Type>> ExpandLabels(MetricBase meter, LabelSet labels)
         {
-            List<string> label_aggregates = new();
+            var ns = meter.MetricNamespace;
+            var name = meter.MetricName;
+            var type = meter.MetricType;
 
-            label_aggregates.Add("_Total");
+            var qualifiedName = ($"{type}/{ns}/{name}");
 
-            var lbl = labels.GetKeyValues();
-            for (int n = 0; n < lbl.Length; n += 2)
+            // Merge Bound and Ad-Hoc labels into one
+
+            Dictionary<string,string> labelDict = new();
+
+            var boundLabels = meter.Labels.GetKeyValues();
+            for (int n = 0; n < boundLabels.Length; n += 2)
             {
-                if (lbl[n] == "OperNum")
-                {
-                    label_aggregates.Add($"{lbl[n]}={lbl[n+1]}");
-                }
+                labelDict[boundLabels[n]] = boundLabels[n+1];
             }
 
-            lbl = boundLabels.GetKeyValues();
-            for (int n = 0; n < lbl.Length; n += 2)
+            var adhocLabels = labels.GetKeyValues();
+            for (int n = 0; n < adhocLabels.Length; n += 2)
             {
-                if (lbl[n] == "LibraryInstanceName")
-                {
-                    label_aggregates.Add($"{lbl[n]}={lbl[n+1]}");
-                }
+                labelDict[adhocLabels[n]] = adhocLabels[n+1];
+            }
+
+            // TODO: Need to make this configurable for all kinds of Pre-Aggregates and Aggregation Types
+            // Determine how to expand into different aggregates instances
+
+            List<Tuple<string,Type>> label_aggregates = new();
+
+            // Meter for total (drop all labels)
+            label_aggregates.Add(Tuple.Create($"{qualifiedName}/_Total", typeof(CountSumMinMax)));
+
+            label_aggregates.Add(Tuple.Create($"{qualifiedName}", typeof(LabelHistogram)));
+
+            // Meter for each dimension
+            foreach (var kv in labelDict)
+            {
+                label_aggregates.Add(Tuple.Create($"{qualifiedName}/{kv.Key}={kv.Value}", typeof(CountSumMinMax)));
             }
 
             return label_aggregates;
         }
 
-        public override bool OnRecord(MetricBase counter, int num, LabelSet boundLabels, LabelSet labels)
+        public override bool OnRecord(MetricBase counter, DateTimeOffset dt, int num, LabelSet labels)
         {
-            return OnRecord(counter, new MetricValue(num), boundLabels, labels);
+            return OnRecord(counter, dt, new MetricValue(num), labels);
         }
 
-        public override bool OnRecord(MetricBase counter, double num, LabelSet boundLabels, LabelSet labels)
+        public override bool OnRecord(MetricBase counter, DateTimeOffset dt, double num, LabelSet labels)
         {
-            return OnRecord(counter, new MetricValue(num), boundLabels, labels);
+            return OnRecord(counter, dt, new MetricValue(num), labels);
         }
 
-        public bool OnRecord(MetricBase counter, MetricValue num, LabelSet boundLabels, LabelSet labels)
+        public bool OnRecord(MetricBase meter, DateTimeOffset dt, MetricValue num, LabelSet labels)
         {
-            if (isBuilt && counter.Enabled)
+            if (isBuilt && meter.Enabled)
             {
-                if (counter.state is SumDataState data)
+                if (meter.state is SumDataState data)
                 {
-                    var label_aggregates = ExpandLabels(boundLabels, labels);
+                    var label_aggregates = ExpandLabels(meter, labels);
 
-                    lock (data.lockState)
+                    lock (lockAggregateDict)
                     {
-                        foreach (var key in label_aggregates)
+                        foreach (var tup in label_aggregates)
                         {
-                            AggregationState aggdata;
-                            if (!data.aggregates.TryGetValue(key, out aggdata))
-                            {
-                                // TODO: How to specifying the type of Aggregation we're doing here!
-                                aggdata = new CountSumMinMax();
+                            var key = tup.Item1;
+                            var type = tup.Item2;
 
-                                data.aggregates[key] = aggdata;
+                            AggregationState aggdata;
+                            if (!aggregateDict.TryGetValue(key, out aggdata))
+                            {
+                                aggdata = (AggregationState) Activator.CreateInstance(type);
+                                aggregateDict[key] = aggdata;
                             }
 
-                            aggdata.Update(num);
+                            aggdata.Update(meter, num);
                         }
                     }
 
@@ -151,42 +174,32 @@ namespace OpenTelmetry.Sdk
         {
             if (isBuilt)
             {
+                var oldAggDict = Interlocked.Exchange(ref aggregateDict, new Dictionary<string, AggregationState>());
+
                 StringBuilder sb = new StringBuilder();
 
-                foreach (var counter in counters)
+                foreach (var kv in oldAggDict)
                 {
-                    sb.Clear();
+                    sb.AppendLine(kv.Key);
 
-                    if (counter.state is SumDataState data)
+                    // TODO: Print out each specific type of Aggregation.
+                    if (kv.Value is CountSumMinMax cnt)
                     {
-                        if (data.aggregates.Count > 0)
-                        {
-                            var oldLabels = Interlocked.Exchange(ref data.aggregates, new Dictionary<string, AggregationState>());
-
-                            var ns = counter.MetricNamespace;
-                            var name = counter.MetricName;
-                            var type = counter.MetricType;
-                            var counterLabels = counter.Labels.GetKeyValues();
-
-                            sb.AppendLine($"{type}/{ns}/{name}/[{String.Join(",", counterLabels)}]");
-
-                            foreach (var kv in oldLabels)
-                            {
-                                // TODO: Print out each specific type of Aggregation.
-                                if (kv.Value is CountSumMinMax cnt)
-                                {
-                                    sb.AppendLine($"  {kv.Key} = n={cnt.count}, sum={cnt.sum}, min={cnt.min}, max={cnt.max}");
-                                }
-                                else
-                                {
-                                    sb.AppendLine($"  {kv.Key} = UNKNOWN");
-                                }
-                            }
-
-                            Console.WriteLine(sb.ToString());
-                        }
+                        sb.AppendLine($"  CountSumMinMax: n={cnt.count}, sum={cnt.sum}, min={cnt.min}, max={cnt.max}");
+                    }
+                    else if (kv.Value is LabelHistogram hgm)
+                    {
+                        sb.Append($"  LabelHistogram: ");
+                        var details = String.Join(", ", hgm.bins.Select(x => $"{x.Key}={x.Value}"));
+                        sb.AppendLine(details);
+                    }
+                    else
+                    {
+                        sb.AppendLine($"  UNKNOWN");
                     }
                 }
+
+                Console.WriteLine(sb.ToString());
             }
         }
 
@@ -198,7 +211,7 @@ namespace OpenTelmetry.Sdk
 
         public abstract class AggregationState
         {
-            public abstract void Update(MetricValue num);
+            public abstract void Update(MetricBase meter, MetricValue num);
         }
 
         public class CountSumMinMax : AggregationState
@@ -208,7 +221,7 @@ namespace OpenTelmetry.Sdk
             public double max = 0;
             public double min = 0;
 
-            public override void Update(MetricValue value)
+            public override void Update(MetricBase meter, MetricValue value)
             {
                 double num = 0;
                 if (value.value is int i)
@@ -231,6 +244,34 @@ namespace OpenTelmetry.Sdk
                 {
                     min = Math.Min(min, num);
                     max = Math.Max(max, num);
+                }
+            }
+        }
+
+        public class LabelHistogram : AggregationState
+        {
+            public Dictionary<string,int> bins = new();
+
+            public override void Update(MetricBase meter, MetricValue value)
+            {
+                var labels = meter.Labels.GetKeyValues();
+
+                var keys = new List<string>() { "_total" };
+
+                for (var n = 0; n < labels.Length; n+= 2)
+                {
+                    keys.Add($"{labels[n]}:{labels[n+1]}");
+                }
+
+                foreach (var key in keys)
+                {
+                    int count;
+                    if (!bins.TryGetValue(key, out count))
+                    {
+                        count = 0;
+                    }
+
+                    bins[key] = count + 1;
                 }
             }
         }

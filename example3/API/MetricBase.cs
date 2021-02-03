@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Threading;
 
 namespace OpenTelmetry.Api
@@ -41,7 +42,7 @@ namespace OpenTelmetry.Api
         {
             if (Enabled)
             {
-                source?.OnRecord(this, num, Labels, labels);
+                source?.OnRecord(this, DateTimeOffset.UtcNow, num, labels);
             }
         }
 
@@ -49,7 +50,22 @@ namespace OpenTelmetry.Api
         {
             if (Enabled)
             {
-                source?.OnRecord(this, num, Labels, labels);
+                source?.OnRecord(this, DateTimeOffset.UtcNow, num, labels);
+            }
+        }
+
+        protected void RecordMetricData(MetricValue val, LabelSet labels)
+        {
+            if (Enabled)
+            {
+                if (val.value is int i)
+                {
+                    source?.OnRecord(this, DateTimeOffset.UtcNow, i, labels);
+                }
+                else if (val.value is double d)
+                {
+                    source?.OnRecord(this, DateTimeOffset.UtcNow, d, labels);
+                }
             }
         }
 
@@ -70,9 +86,50 @@ namespace OpenTelmetry.Api
                 }
             }
         }
-    }
 
-    public class MetricState
-    {
+        /// <summary>
+        /// Allow Batching of recordings
+        /// </summary>
+        public class BatchBuilder
+        {
+            private List<Tuple<MetricBase, MetricValue>> batches = new();
+            private LabelSet labels;
+
+            public BatchBuilder(LabelSet labels)
+            {
+                this.labels = labels;
+            }
+
+            public BatchBuilder Add(MetricBase meter, int value)
+            {
+                batches.Add(Tuple.Create(meter, new MetricValue(value)));
+
+                return this;
+            }
+
+            public void Record()
+            {
+                DateTimeOffset dt = DateTimeOffset.UtcNow;
+
+                foreach (var recording in batches)
+                {
+                    var meter = recording.Item1;
+                    var val = recording.Item2;
+
+                    if (meter.Enabled)
+                    {
+                        if (val.value is int i)
+                        {
+                            meter.source?.OnRecord(meter, dt, i, labels);
+                        }
+                        else if (val.value is double d)
+                        {
+                            meter.source?.OnRecord(meter, dt, d, labels);
+                        }
+                    }
+                }
+            }
+        }
+
     }
 }

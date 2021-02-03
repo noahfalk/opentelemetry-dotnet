@@ -15,7 +15,7 @@ namespace example3
 
             var sdk = new SampleSdk()
                 .Name("MyProgram")
-                .SetCollectionPeriod(2000)
+                .SetCollectionPeriod(6000)
                 //.AddNamespaceExclusion("MyLibrary/Library_2")
                 .Build()
                 ;

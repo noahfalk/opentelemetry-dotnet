@@ -24,10 +24,10 @@ namespace OpenTelmetry.Api
         /// <summary>
         /// Let SDK know when new measures are recorded
         /// </summary>
-        public abstract bool OnRecord(MetricBase counter, int num, LabelSet boundLabels, LabelSet labels);
-        
+        public abstract bool OnRecord(MetricBase counter, DateTimeOffset dt, int num, LabelSet labels);
+
         // TODO: Represent int/double as a generic class so we don't need two OnRecord() function
         // TODO: Need discussion of carrying native number or BOX up the number into generic class
-        public abstract bool OnRecord(MetricBase counter, double num, LabelSet boundLabels, LabelSet labels);
+        public abstract bool OnRecord(MetricBase counter, DateTimeOffset dt, double num, LabelSet labels);
     }
 }
