@@ -78,13 +78,6 @@ namespace OpenTelmetry.Sdk
             return true;
         }
 
-        public override bool OnRecord(MetricBase counter, int num, LabelSet boundLabels, LabelSet labels)
-        {
-            // TODO: Start with a SumData<int> and promoted to SumData<double> as necessary.
-
-            return OnRecord(counter, (double) num, boundLabels, labels);
-        }
-
         private List<string> ExpandLabels(LabelSet boundLabels, LabelSet labels)
         {
             List<string> label_aggregates = new();
@@ -112,7 +105,17 @@ namespace OpenTelmetry.Sdk
             return label_aggregates;
         }
 
+        public override bool OnRecord(MetricBase counter, int num, LabelSet boundLabels, LabelSet labels)
+        {
+            return OnRecord(counter, new MetricValue(num), boundLabels, labels);
+        }
+
         public override bool OnRecord(MetricBase counter, double num, LabelSet boundLabels, LabelSet labels)
+        {
+            return OnRecord(counter, new MetricValue(num), boundLabels, labels);
+        }
+
+        public bool OnRecord(MetricBase counter, MetricValue num, LabelSet boundLabels, LabelSet labels)
         {
             if (isBuilt && counter.Enabled)
             {
@@ -124,25 +127,16 @@ namespace OpenTelmetry.Sdk
                     {
                         foreach (var key in label_aggregates)
                         {
-                            CountSumMinMax aggdata;
+                            AggregationState aggdata;
                             if (!data.aggregates.TryGetValue(key, out aggdata))
                             {
+                                // TODO: How to specifying the type of Aggregation we're doing here!
                                 aggdata = new CountSumMinMax();
+
                                 data.aggregates[key] = aggdata;
                             }
 
-                            aggdata.count++;
-                            aggdata.sum += num;
-                            if (aggdata.count == 1)
-                            {
-                                aggdata.min = num;
-                                aggdata.max = num;
-                            }
-                            else
-                            {
-                                aggdata.min = Math.Min(aggdata.min, num);
-                                aggdata.max = Math.Max(aggdata.max, num);
-                            }
+                            aggdata.Update(num);
                         }
                     }
 
@@ -167,7 +161,7 @@ namespace OpenTelmetry.Sdk
                     {
                         if (data.aggregates.Count > 0)
                         {
-                            var oldLabels = Interlocked.Exchange(ref data.aggregates, new Dictionary<string, CountSumMinMax>());
+                            var oldLabels = Interlocked.Exchange(ref data.aggregates, new Dictionary<string, AggregationState>());
 
                             var ns = counter.MetricNamespace;
                             var name = counter.MetricName;
@@ -178,9 +172,15 @@ namespace OpenTelmetry.Sdk
 
                             foreach (var kv in oldLabels)
                             {
-                                var labels = kv.Key;
-                                var cnt = kv.Value;
-                                sb.AppendLine($"  {labels} = n={cnt.count}, sum={cnt.sum}, min={cnt.min}, max={cnt.max}");
+                                // TODO: Print out each specific type of Aggregation.
+                                if (kv.Value is CountSumMinMax cnt)
+                                {
+                                    sb.AppendLine($"  {kv.Key} = n={cnt.count}, sum={cnt.sum}, min={cnt.min}, max={cnt.max}");
+                                }
+                                else
+                                {
+                                    sb.AppendLine($"  {kv.Key} = UNKNOWN");
+                                }
                             }
 
                             Console.WriteLine(sb.ToString());
@@ -193,15 +193,46 @@ namespace OpenTelmetry.Sdk
         public class SumDataState : MetricState
         {
             public readonly object lockState = new();
-            public Dictionary<string, CountSumMinMax> aggregates = new();
+            public Dictionary<string, AggregationState> aggregates = new();
         }
 
-        public class CountSumMinMax
+        public abstract class AggregationState
+        {
+            public abstract void Update(MetricValue num);
+        }
+
+        public class CountSumMinMax : AggregationState
         {
             public int count = 0;
             public double sum = 0;
             public double max = 0;
             public double min = 0;
+
+            public override void Update(MetricValue value)
+            {
+                double num = 0;
+                if (value.value is int i)
+                {
+                    num = i;
+                }
+                if (value.value is double d)
+                {
+                    num = d;
+                }
+
+                count++;
+                sum += num;
+                if (count == 1)
+                {
+                    min = num;
+                    max = num;
+                }
+                else
+                {
+                    min = Math.Min(min, num);
+                    max = Math.Max(max, num);
+                }
+            }
         }
     }
 }

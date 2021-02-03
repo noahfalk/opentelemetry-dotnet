@@ -15,10 +15,19 @@ namespace OpenTelmetry.Api
             MetricBase.RegisterSDK(this);
         }
 
+        /// <summary>
+        /// Let SDK know when new counters are being created
+        /// </summary>
         public abstract bool OnCreate(MetricBase counter, LabelSet labels);
 
-        public abstract bool OnRecord(MetricBase counter, int num, LabelSet boundLabels, LabelSet labels);
 
+        /// <summary>
+        /// Let SDK know when new measures are recorded
+        /// </summary>
+        public abstract bool OnRecord(MetricBase counter, int num, LabelSet boundLabels, LabelSet labels);
+        
+        // TODO: Represent int/double as a generic class so we don't need two OnRecord() function
+        // TODO: Need discussion of carrying native number or BOX up the number into generic class
         public abstract bool OnRecord(MetricBase counter, double num, LabelSet boundLabels, LabelSet labels);
     }
 }
