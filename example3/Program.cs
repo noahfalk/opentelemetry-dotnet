@@ -9,20 +9,32 @@ namespace example3
     {
         static async Task Main(string[] args)
         {
-            Console.WriteLine("Start...");
-
-            var rand = new Random();
+            // Example of setting up a SDK
 
             var sdk = new SampleSdk()
                 .Name("MyProgram")
-                .SetCollectionPeriod(6000)
+                .SetCollectionPeriod(4000)
                 //.AddNamespaceExclusion("MyLibrary/Library_2")
                 .Build()
                 ;
 
+            // Do our operations
+            var pgm = new Program();
+            await pgm.Run(5000);
+
+            // Stop our SDK
+            sdk.Stop();
+        }
+
+        public async Task Run(int periodMilliseconds)
+        {
+            var rand = new Random();
+
+            bool isQuit = false;
+
             Task t1 = Task.Run(async () => {
                 var lib = new Library("Library_1");
-                while (!sdk.IsStop())
+                while (!isQuit)
                 {
                     lib.DoOperation();
                     await Task.Delay((rand.Next() % 10) * 100);
@@ -31,20 +43,18 @@ namespace example3
 
             Task t2 = Task.Run(async () => {
                 var lib = new Library("Library_2");
-                while (!sdk.IsStop())
+                while (!isQuit)
                 {
                     lib.DoOperation();
                     await Task.Delay(200);
                 }
             });
 
-            await Task.Delay(5000);
+            await Task.Delay(periodMilliseconds);
+            isQuit = true;
 
-            sdk.Stop();
             await t1;
             await t2;
-
-            Console.WriteLine("Done.");
         }
     }
 }

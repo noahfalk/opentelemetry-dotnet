@@ -27,16 +27,6 @@ namespace OpenTelmetry.Api
         /// <summary>
         /// Let SDK know when new measures are recorded
         /// </summary>
-        public abstract bool OnRecord(MeterBase meter, int num, LabelSet labels);
-
-        /// <summary>
-        /// Let SDK know when new measures are recorded
-        /// </summary>
-        public abstract bool OnRecord(MeterBase meter, double num, LabelSet labels);
-
-        /// <summary>
-        /// Let SDK know when new measures are recorded
-        /// </summary>
         public abstract bool OnRecord(MeterBase meter, MetricValue value, LabelSet labels);
 
         /// <summary>

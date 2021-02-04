@@ -93,7 +93,7 @@ namespace OpenTelmetry.Sdk
             var type = meter.MetricType;
 
             // TODO: Area for performance improvements
-            
+
             // TODO: Find a more performant way to avoid string interpolation.  Maybe class for segmented string list.  Reuse Labelset?
 
             var qualifiedName = ($"{type}/{ns}/{name}");
@@ -133,19 +133,11 @@ namespace OpenTelmetry.Sdk
             return label_aggregates;
         }
 
-        public override bool OnRecord(MeterBase meter, int num, LabelSet labels)
-        {
-            return OnRecord(meter, DateTimeOffset.UtcNow, new MetricValue(num), labels);
-        }
-
         public override bool OnRecord(MeterBase meter, MetricValue value, LabelSet labels)
         {
-            return OnRecord(meter, DateTimeOffset.UtcNow, value, labels);
-        }
+            var dt = DateTimeOffset.UtcNow;
 
-        public override bool OnRecord(MeterBase meter, double num, LabelSet labels)
-        {
-            return OnRecord(meter, DateTimeOffset.UtcNow, new MetricValue(num), labels);
+            return OnRecord(meter, dt, value, labels);
         }
 
         public override bool OnRecord(List<Tuple<MeterBase, MetricValue>> records, LabelSet labels)
@@ -162,7 +154,7 @@ namespace OpenTelmetry.Sdk
             return true;
         }
 
-        public bool OnRecord(MeterBase meter, DateTimeOffset dt, MetricValue value, LabelSet labels)
+        private bool OnRecord(MeterBase meter, DateTimeOffset dt, MetricValue value, LabelSet labels)
         {
             if (isBuilt && meter.Enabled)
             {
@@ -195,6 +187,8 @@ namespace OpenTelmetry.Sdk
 
         private void Collect()
         {
+            Console.WriteLine("*** Collect...");
+
             if (isBuilt)
             {
                 // Reset all aggregates!

@@ -23,10 +23,10 @@ namespace OpenTelmetry.Api
 
         public MetricState state { get; set; }
 
-        protected MeterBase(string ns, string name, string type, LabelSet labels)
+        protected MeterBase(MetricProvider provider, string name, string type, LabelSet labels)
         {
             MetricName = name;
-            MetricNamespace = ns;
+            MetricNamespace = provider.GetNamespace();
             MetricType = type;
             Labels = labels;
 
@@ -38,34 +38,11 @@ namespace OpenTelmetry.Api
             }
         }
 
-        protected void RecordMetricData(int num, LabelSet labels)
-        {
-            if (Enabled)
-            {
-                listener?.OnRecord(this, num, labels);
-            }
-        }
-
-        protected void RecordMetricData(double num, LabelSet labels)
-        {
-            if (Enabled)
-            {
-                listener?.OnRecord(this, num, labels);
-            }
-        }
-
         protected void RecordMetricData(MetricValue val, LabelSet labels)
         {
             if (Enabled)
             {
-                if (val.value is int i)
-                {
-                    listener?.OnRecord(this, i, labels);
-                }
-                else if (val.value is double d)
-                {
-                    listener?.OnRecord(this, d, labels);
-                }
+                listener?.OnRecord(this, val, labels);
             }
         }
 
@@ -101,7 +78,26 @@ namespace OpenTelmetry.Api
                 this.labels = labels;
             }
 
-            public BatchBuilder Add(MeterBase meter, int value)
+            public BatchBuilder RecordMeasurement(MeterBase meter, int value)
+            {
+                // TODO: Handle case where we mix meters from different listeners!
+                if (meter.Enabled)
+                {
+                    if (listener is null)
+                    {
+                        listener = meter.listener;
+                    }
+
+                    if (meter.listener == listener)
+                    {
+                        batches.Add(Tuple.Create(meter, new MetricValue(value)));
+                    }
+                }
+
+                return this;
+            }
+
+            public BatchBuilder RecordMeasurement(MeterBase meter, double value)
             {
                 // TODO: Handle case where we mix meters from different listeners!
                 if (meter.Enabled)
