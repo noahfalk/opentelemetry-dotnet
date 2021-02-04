@@ -27,7 +27,7 @@ namespace MyLibrary
 
             var guage = new Counter("MyLibrary", "operations");
 
-            new MetricBase.BatchBuilder(labels)
+            new MeterBase.BatchBuilder(labels)
                 .Add(counter, 100)
                 .Add(guage, 10)
                 .Record();

@@ -1,0 +1,47 @@
+using System;
+using System.Collections.Generic;
+
+namespace OpenTelmetry.Api
+{
+    public abstract class MetricListener
+    {
+        protected MetricListener oldSource = null;
+
+        public MetricListener()
+        {
+        }
+
+        public void RegisterListener()
+        {
+            MeterBase.RegisterSDK(this);
+        }
+
+        /// <summary>
+        /// Let SDK know when new counters are being created
+        /// </summary>
+        public abstract bool OnCreate(MeterBase counter, LabelSet labels);
+
+        // TODO: Represent int/double as a generic class so we don't need two OnRecord() function
+        // TODO: Need discussion of carrying native number or BOX up the number into generic class
+
+        /// <summary>
+        /// Let SDK know when new measures are recorded
+        /// </summary>
+        public abstract bool OnRecord(MeterBase meter, int num, LabelSet labels);
+
+        /// <summary>
+        /// Let SDK know when new measures are recorded
+        /// </summary>
+        public abstract bool OnRecord(MeterBase meter, double num, LabelSet labels);
+
+        /// <summary>
+        /// Let SDK know when new measures are recorded
+        /// </summary>
+        public abstract bool OnRecord(MeterBase meter, MetricValue value, LabelSet labels);
+
+        /// <summary>
+        /// Allow multiple measurements to be recorded atomically
+        /// </summary>
+        public abstract bool OnRecord(List<Tuple<MeterBase, MetricValue>> records, LabelSet labels);
+    }
+}

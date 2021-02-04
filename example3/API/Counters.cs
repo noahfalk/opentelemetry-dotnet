@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace OpenTelmetry.Api
 {
-    public class Counter : MetricBase
+    public class Counter : MeterBase
     {
         public Counter(string ns, string name) : base(ns, name, "Counter", LabelSet.Empty)
         {

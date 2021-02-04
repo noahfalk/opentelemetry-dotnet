@@ -5,11 +5,11 @@ using System.Threading;
 
 namespace OpenTelmetry.Api
 {
-    public abstract class MetricBase
+    public abstract class MeterBase
     {
-        static protected List<MetricSource> registered = new();
+        static protected List<MetricListener> registered = new();
 
-        public MetricSource source { get; }
+        public MetricListener listener { get; }
 
         public string MetricName { get; }
 
@@ -23,7 +23,7 @@ namespace OpenTelmetry.Api
 
         public MetricState state { get; set; }
 
-        protected MetricBase(string ns, string name, string type, LabelSet labels)
+        protected MeterBase(string ns, string name, string type, LabelSet labels)
         {
             MetricName = name;
             MetricNamespace = ns;
@@ -33,8 +33,8 @@ namespace OpenTelmetry.Api
             var sources = registered;
             if (sources.Count > 0)
             {
-                source = sources[sources.Count-1];
-                Enabled = source.OnCreate(this, labels);
+                listener = sources[sources.Count-1];
+                Enabled = listener.OnCreate(this, labels);
             }
         }
 
@@ -42,7 +42,7 @@ namespace OpenTelmetry.Api
         {
             if (Enabled)
             {
-                source?.OnRecord(this, DateTimeOffset.UtcNow, num, labels);
+                listener?.OnRecord(this, num, labels);
             }
         }
 
@@ -50,7 +50,7 @@ namespace OpenTelmetry.Api
         {
             if (Enabled)
             {
-                source?.OnRecord(this, DateTimeOffset.UtcNow, num, labels);
+                listener?.OnRecord(this, num, labels);
             }
         }
 
@@ -60,26 +60,26 @@ namespace OpenTelmetry.Api
             {
                 if (val.value is int i)
                 {
-                    source?.OnRecord(this, DateTimeOffset.UtcNow, i, labels);
+                    listener?.OnRecord(this, i, labels);
                 }
                 else if (val.value is double d)
                 {
-                    source?.OnRecord(this, DateTimeOffset.UtcNow, d, labels);
+                    listener?.OnRecord(this, d, labels);
                 }
             }
         }
 
-        static public void RegisterSDK(MetricSource source)
+        static public void RegisterSDK(MetricListener source)
         {
             while (true)
             {
                 var oldSources = registered;
 
-                var newSources = new List<MetricSource>();
+                var newSources = new List<MetricListener>();
                 newSources.AddRange(oldSources);
                 newSources.Add(source);
 
-                var orgSources = Interlocked.CompareExchange(ref MetricBase.registered, newSources, oldSources);
+                var orgSources = Interlocked.CompareExchange(ref MeterBase.registered, newSources, oldSources);
                 if (orgSources == oldSources)
                 {
                     break;
@@ -92,41 +92,39 @@ namespace OpenTelmetry.Api
         /// </summary>
         public class BatchBuilder
         {
-            private List<Tuple<MetricBase, MetricValue>> batches = new();
+            private List<Tuple<MeterBase, MetricValue>> batches = new();
             private LabelSet labels;
+            private MetricListener listener;
 
             public BatchBuilder(LabelSet labels)
             {
                 this.labels = labels;
             }
 
-            public BatchBuilder Add(MetricBase meter, int value)
+            public BatchBuilder Add(MeterBase meter, int value)
             {
-                batches.Add(Tuple.Create(meter, new MetricValue(value)));
+                // TODO: Handle case where we mix meters from different listeners!
+                if (meter.Enabled)
+                {
+                    if (listener is null)
+                    {
+                        listener = meter.listener;
+                    }
+
+                    if (meter.listener == listener)
+                    {
+                        batches.Add(Tuple.Create(meter, new MetricValue(value)));
+                    }
+                }
 
                 return this;
             }
 
             public void Record()
             {
-                DateTimeOffset dt = DateTimeOffset.UtcNow;
-
-                foreach (var recording in batches)
+                if (batches.Count > 0)
                 {
-                    var meter = recording.Item1;
-                    var val = recording.Item2;
-
-                    if (meter.Enabled)
-                    {
-                        if (val.value is int i)
-                        {
-                            meter.source?.OnRecord(meter, dt, i, labels);
-                        }
-                        else if (val.value is double d)
-                        {
-                            meter.source?.OnRecord(meter, dt, d, labels);
-                        }
-                    }
+                    listener.OnRecord(batches, labels);
                 }
             }
         }
