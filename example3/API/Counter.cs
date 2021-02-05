@@ -5,19 +5,28 @@ namespace OpenTelmetry.Api
 {
     public class Counter : MeterBase
     {
-        public Counter(string name) : base(MetricProvider.DefaultProvider, name, "Counter", LabelSet.Empty)
+        public Counter(string name) 
+            : base(MetricProvider.DefaultProvider, name, "Counter", LabelSet.Empty, LabelSet.Empty)
         {
         }
 
-        public Counter(string name, LabelSet labels) : base(MetricProvider.DefaultProvider, name, "Counter", labels)
+        public Counter(string name, LabelSet labels) 
+            : base(MetricProvider.DefaultProvider, name, "Counter", labels, LabelSet.Empty)
         {
         }
 
-        public Counter(MetricProvider provider, string name) : base(provider, name, "Counter", LabelSet.Empty)
+        public Counter(MetricProvider provider, string name) 
+            : base(provider, name, "Counter", LabelSet.Empty, LabelSet.Empty)
         {
         }
 
-        public Counter(MetricProvider provider, string name, LabelSet labels) : base(provider, name, "Counter", labels)
+        public Counter(MetricProvider provider, string name, LabelSet labels) 
+            : base(provider, name, "Counter", labels, LabelSet.Empty)
+        {
+        }
+
+        public Counter(MetricProvider provider, string name, LabelSet labels, LabelSet hints) 
+            : base(provider, name, "Counter", labels, hints)
         {
         }
 

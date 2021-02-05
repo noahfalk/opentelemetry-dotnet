@@ -21,7 +21,12 @@ namespace MyLibrary
 
             counter_request = MetricProvider.DefaultProvider.CreateCounter("request2", labels);
 
-            guage_qsize = new Guage(MetricProvider.DefaultProvider, "queue_size");
+            guage_qsize = new Guage(MetricProvider.DefaultProvider, "queue_size", LabelSet.Empty, 
+                new LabelSet(new string[] { 
+                    "Description", "A measure of Queue size",
+                    "DefaultAggregator", "Histogram",
+                    })
+                );
 
             counter_request3 = new Counter("request3");
 

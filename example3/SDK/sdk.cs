@@ -132,20 +132,35 @@ namespace OpenTelmetry.Sdk
                 labelDict[adhocLabels[n]] = adhocLabels[n+1];
             }
 
+            // Get Hints
+
+            Dictionary<string,string> hints = new();
+
+            var hintLabels = meter.Hints.GetKeyValues();
+            for (int n = 0; n < hintLabels.Length; n += 2)
+            {
+                hints[hintLabels[n]] = hintLabels[n+1];
+            }
+
             // TODO: Need to make this configurable for all kinds of Pre-Aggregates and Aggregation Types
             // Determine how to expand into different aggregates instances
 
             List<Tuple<string,Type>> label_aggregates = new();
 
-            // Meter for total (drop all labels)
-            label_aggregates.Add(Tuple.Create($"{qualifiedName}/_Total", typeof(CountSumMinMax)));
+            // TODO: Use Meter.Hints to determine how to expand labels...
+            var defaultAgg = hints.GetValueOrDefault("DefaultAggregator", "Sum");
+            var defaultAggType = 
+                defaultAgg == "Sum" ? typeof(CountSumMinMax)
+                : defaultAgg == "Histogram" ? typeof(LabelHistogram)
+                : typeof(CountSumMinMax);
 
-            label_aggregates.Add(Tuple.Create($"{qualifiedName}", typeof(LabelHistogram)));
+            // Meter for total (dropping all labels)
+            label_aggregates.Add(Tuple.Create($"{qualifiedName}/_Total", defaultAggType));
 
-            // Meter for each dimension
+            // Meter for each 1D dimension
             foreach (var kv in labelDict)
             {
-                label_aggregates.Add(Tuple.Create($"{qualifiedName}/{kv.Key}={kv.Value}", typeof(CountSumMinMax)));
+                label_aggregates.Add(Tuple.Create($"{qualifiedName}/{kv.Key}={kv.Value}", defaultAggType));
             }
 
             // Apply inclusion/exclusion filters
@@ -187,7 +202,7 @@ namespace OpenTelmetry.Sdk
                             aggregateDict[key] = aggdata;
                         }
 
-                        aggdata.Update(meter, value);
+                        aggdata.Update(meter, value, labels);
                     }
                 }
 

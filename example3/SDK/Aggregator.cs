@@ -7,7 +7,7 @@ namespace OpenTelmetry.Sdk
 {
     public abstract class Aggregator
     {
-        public abstract void Update(MeterBase meter, MetricValue num);
+        public abstract void Update(MeterBase meter, MetricValue num, LabelSet labels);
     }
 
     public class CountSumMinMax : Aggregator
@@ -17,7 +17,7 @@ namespace OpenTelmetry.Sdk
         public double max = 0;
         public double min = 0;
 
-        public override void Update(MeterBase meter, MetricValue value)
+        public override void Update(MeterBase meter, MetricValue value, LabelSet labels)
         {
             double num = 0;
             if (value.value is int i)
@@ -48,15 +48,27 @@ namespace OpenTelmetry.Sdk
     {
         public Dictionary<string,int> bins = new();
 
-        public override void Update(MeterBase meter, MetricValue value)
+        public override void Update(MeterBase meter, MetricValue value, LabelSet labels)
         {
-            var labels = meter.Labels.GetKeyValues();
+            var effectiveLabels = new Dictionary<string,string>();
+
+            var boundLabels = meter.Labels.GetKeyValues();
+            for (int n = 0; n < boundLabels.Length; n += 2)
+            {
+                effectiveLabels[boundLabels[n]] = boundLabels[n+1];
+            }
+
+            var adhocLabels = labels.GetKeyValues();
+            for (int n = 0; n < adhocLabels.Length; n += 2)
+            {
+                effectiveLabels[adhocLabels[n]] = adhocLabels[n+1];
+            }
 
             var keys = new List<string>() { "_total" };
 
-            for (var n = 0; n < labels.Length; n+= 2)
+            foreach (var l in effectiveLabels)
             {
-                keys.Add($"{labels[n]}:{labels[n+1]}");
+                keys.Add($"{l.Key}:{l.Value}");
             }
 
             foreach (var key in keys)

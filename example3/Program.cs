@@ -22,9 +22,9 @@ namespace example3
                 .AttachProvider("MyLibrary")
 
                 // Add Filters.  Order matters.  Can be stacked.
-                .AddMetricInclusion("/MyLibrary/")
-                .AddMetricExclusion("/queue_size/")
-                .AddMetricInclusion("/_Total")
+                //.AddMetricInclusion("/MyLibrary/")
+                //.AddMetricExclusion("/queue_size/")
+                //.AddMetricInclusion("/_Total")
 
                 // Finalize pipeline
                 .Build()

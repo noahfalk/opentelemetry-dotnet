@@ -13,18 +13,20 @@ namespace OpenTelmetry.Api
         public string MetricNamespace { get; }
         public string MetricType { get; }
         public LabelSet Labels { get; }
+        public LabelSet Hints { get; }
 
         public virtual bool Enabled { get; set; } = true;
 
         // Allow custom Meters to store their own state
         public MeterState state { get; set; }
 
-        protected MeterBase(MetricProvider provider, string name, string type, LabelSet labels)
+        protected MeterBase(MetricProvider provider, string name, string type, LabelSet labels, LabelSet hints)
         {
             MetricName = name;
             MetricNamespace = provider.GetName();
             MetricType = type;
             Labels = labels;
+            Hints = hints;
             this.provider = provider;
 
             // TODO: How to handle attach/detach of providers and listeners?

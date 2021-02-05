@@ -5,19 +5,28 @@ namespace OpenTelmetry.Api
 {
     public class Guage : MeterBase
     {
-        public Guage(string name) : base(MetricProvider.DefaultProvider, name, "Guage", LabelSet.Empty)
+        public Guage(string name) 
+            : base(MetricProvider.DefaultProvider, name, "Guage", LabelSet.Empty, LabelSet.Empty)
         {
         }
 
-        public Guage(string name, LabelSet labels) : base(MetricProvider.DefaultProvider, name, "Guage", labels)
+        public Guage(string name, LabelSet labels) 
+            : base(MetricProvider.DefaultProvider, name, "Guage", labels, LabelSet.Empty)
         {
         }
 
-        public Guage(MetricProvider provider, string name) : base(provider, name, "Guage", LabelSet.Empty)
+        public Guage(MetricProvider provider, string name) 
+            : base(provider, name, "Guage", LabelSet.Empty, LabelSet.Empty)
         {
         }
 
-        public Guage(MetricProvider provider, string name, LabelSet labels) : base(provider, name, "Guage", labels)
+        public Guage(MetricProvider provider, string name, LabelSet labels) 
+            : base(provider, name, "Guage", labels, LabelSet.Empty)
+        {
+        }
+
+        public Guage(MetricProvider provider, string name, LabelSet labels, LabelSet hints) 
+            : base(provider, name, "Guage", labels, hints)
         {
         }
 
