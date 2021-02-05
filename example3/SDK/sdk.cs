@@ -19,9 +19,9 @@ namespace OpenTelmetry.Sdk
         private string name;
         private int collectPeriod_ms = 2000;
         private bool isBuilt = false;
-        private bool isExitRequest = false;
+        private CancellationTokenSource cancelTokenSrc = new();
 
-        private List<string> namespaceExclusionList = new();
+        private List<Tuple<string,string>> metricFilterList = new();
 
         private Task collectTask;
 
@@ -50,9 +50,15 @@ namespace OpenTelmetry.Sdk
             return this;
         }
 
-        public SampleSdk AddNamespaceExclusion(string ns)
+        public SampleSdk AddMetricInclusion(string term)
         {
-            namespaceExclusionList.Add(ns);
+            metricFilterList.Add(Tuple.Create("Include", term));
+            return this;
+        }
+
+        public SampleSdk AddMetricExclusion(string term)
+        {
+            metricFilterList.Add(Tuple.Create("Exclude", term));
             return this;
         }
 
@@ -65,8 +71,11 @@ namespace OpenTelmetry.Sdk
         public SampleSdk Build()
         {
             // Start Periodic Collection Task
+
+            var token = cancelTokenSrc.Token;
+
             collectTask = Task.Run(async () => {
-                while (!isExitRequest)
+                while (!token.IsCancellationRequested)
                 {
                     await Task.Delay(this.collectPeriod_ms);
                     Collect();
@@ -85,7 +94,7 @@ namespace OpenTelmetry.Sdk
 
         public void Stop()
         {
-            isExitRequest = true;
+            cancelTokenSrc.Cancel();
 
             foreach (var provider in providers)
             {
@@ -137,6 +146,21 @@ namespace OpenTelmetry.Sdk
             foreach (var kv in labelDict)
             {
                 label_aggregates.Add(Tuple.Create($"{qualifiedName}/{kv.Key}={kv.Value}", typeof(CountSumMinMax)));
+            }
+
+            // Apply inclusion/exclusion filters
+            foreach (var filter in metricFilterList)
+            {
+                // TODO: Need to optimize!
+
+                if (filter.Item1 == "Include")
+                {
+                    label_aggregates = label_aggregates.Where((k) => k.Item1.Contains(filter.Item2)).ToList();
+                }
+                else
+                {
+                    label_aggregates = label_aggregates.Where((k) => !k.Item1.Contains(filter.Item2)).ToList();
+                }
             }
 
             return label_aggregates;

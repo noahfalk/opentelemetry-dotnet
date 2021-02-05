@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using MyLibrary;
 using OpenTelmetry.Api;
@@ -15,9 +16,17 @@ namespace example3
             var sdk = new SampleSdk()
                 .Name("MyProgram")
                 .SetCollectionPeriod(4000)
+
+                // Add Providers
                 .AttachProvider(MetricProvider.DefaultProvider)
                 .AttachProvider("MyLibrary")
-                //.AddNamespaceExclusion("MyLibrary/Library_2")
+
+                // Add Filters.  Order matters.  Can be stacked.
+                .AddMetricInclusion("/MyLibrary/")
+                .AddMetricExclusion("/queue_size/")
+                .AddMetricInclusion("/_Total")
+
+                // Finalize pipeline
                 .Build()
                 ;
 
@@ -33,11 +42,12 @@ namespace example3
         {
             var rand = new Random();
 
-            bool isQuit = false;
+            var cancelToken = new CancellationTokenSource();
+            var token = cancelToken.Token;
 
             Task t1 = Task.Run(async () => {
                 var lib = new Library("Library_1");
-                while (!isQuit)
+                while (!token.IsCancellationRequested)
                 {
                     lib.DoOperation();
                     await Task.Delay((rand.Next() % 10) * 100);
@@ -46,7 +56,7 @@ namespace example3
 
             Task t2 = Task.Run(async () => {
                 var lib = new Library("Library_2");
-                while (!isQuit)
+                while (!token.IsCancellationRequested)
                 {
                     lib.DoOperation();
                     await Task.Delay(200);
@@ -54,7 +64,7 @@ namespace example3
             });
 
             await Task.Delay(periodMilliseconds);
-            isQuit = true;
+            cancelToken.Cancel();
 
             await t1;
             await t2;

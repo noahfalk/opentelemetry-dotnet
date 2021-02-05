@@ -4,46 +4,65 @@ namespace MyLibrary
 {
     public class Library
     {
-        Counter counter;
-        Counter counter2;
-        Guage guage;
+        Counter counter_request;
+        Counter counter_request2;
+        Counter counter_request3;
+        Guage guage_qsize;
         int count = 0;
 
         public Library(string name)
         {
-            var labels = new LabelSet( new string[] { "LibraryInstanceName", name });
+            var labels = new LabelSet(new string[] { 
+                "Program", "Test",
+                "LibraryInstanceName", name,
+                });
+
+            // Create in Default provider
+
+            counter_request = MetricProvider.DefaultProvider.CreateCounter("request2", labels);
+
+            guage_qsize = new Guage(MetricProvider.DefaultProvider, "queue_size");
+
+            counter_request3 = new Counter("request3");
+
 
             // Create in custom provider
 
             var provider = MetricProvider.GetProvider("MyLibrary");
-            counter = provider.CreateCounter("requests", labels);
 
-            // Create in Default provider
+            counter_request2 = provider.CreateCounter("requests", labels);
 
-            counter2 = MetricProvider.DefaultProvider.CreateCounter("request2", labels);
-
-            guage = new Guage("queue_size");
+            var counter_registered = new Counter(provider, "registered");
+            counter_registered.Add(1, labels);
         }
 
         public void DoOperation()
         {
-            var labels = new LabelSet( new string[] { "OperNum", $"{count%3}" });
-
             // Example of recording 1 measurment
 
-            counter.Add(1.15, labels);
+            var opernum = count % 3;
 
-            counter.Add(2);
+            var labels = new LabelSet(new string[] { 
+                "OperNum", $"{opernum}",
+                });
 
-            counter2.Add(3.14);
+            counter_request2.Add(1);
 
-            guage.Record(count);
+            counter_request2.Add(0.15, labels);
+
 
             // Example of recording a batch of measurements
 
-            new BatchMetricBuilder(labels)
-                .RecordMetric(counter, 100)
-                .RecordMetric(guage, 10.4)
+            var labels2 = new LabelSet(new string[] { 
+                "OperNum", $"{opernum}",
+                "Mode", "Batch",
+                });
+
+            new BatchMetricBuilder(labels2)
+                .RecordMetric(counter_request, 1.0)
+                .RecordMetric(guage_qsize, count)
+                .RecordMetric(counter_request3, 1)
+                .RecordMetric(counter_request3, 0.1)
                 .Record();
 
             count++;
