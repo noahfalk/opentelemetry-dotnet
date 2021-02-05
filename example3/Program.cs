@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using MyLibrary;
+using OpenTelmetry.Api;
 using OpenTelmetry.Sdk;
 
 namespace example3
@@ -14,6 +15,8 @@ namespace example3
             var sdk = new SampleSdk()
                 .Name("MyProgram")
                 .SetCollectionPeriod(4000)
+                .AttachProvider(MetricProvider.DefaultProvider)
+                .AttachProvider("MyLibrary")
                 //.AddNamespaceExclusion("MyLibrary/Library_2")
                 .Build()
                 ;

@@ -5,17 +5,6 @@ namespace OpenTelmetry.Api
 {
     public abstract class MetricListener
     {
-        protected MetricListener oldSource = null;
-
-        public MetricListener()
-        {
-        }
-
-        public void RegisterListener()
-        {
-            MeterBase.RegisterSDK(this);
-        }
-
         /// <summary>
         /// Let SDK know when new counters are being created
         /// </summary>
@@ -30,8 +19,8 @@ namespace OpenTelmetry.Api
         public abstract bool OnRecord(MeterBase meter, MetricValue value, LabelSet labels);
 
         /// <summary>
-        /// Allow multiple measurements to be recorded atomically
+        /// Allow multiple measurements to be recorded atomicly
         /// </summary>
-        public abstract bool OnRecord(List<Tuple<MeterBase, MetricValue>> records, LabelSet labels);
+        public abstract bool OnRecord(IList<Tuple<MeterBase, MetricValue>> records, LabelSet labels);
     }
 }

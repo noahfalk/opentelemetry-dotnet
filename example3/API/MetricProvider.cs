@@ -1,29 +1,55 @@
+using System.Collections.Generic;
+using System.Collections.Concurrent;
+
 namespace OpenTelmetry.Api
 {
     public class MetricProvider
     {
-        private static MetricProvider default_provider = new MetricProvider("Default");
+        // singleton Default Provider
+        private static MetricProvider default_provider = new MetricProvider("DefaultProvider");
 
-        private string ns;
+        // Global list of all providers
+        private static ConcurrentDictionary<string,MetricProvider> provider_registry = new();
 
-        public MetricProvider(string ns)
+        // All listeners on this provider
+        private ConcurrentDictionary<MetricListener, bool> listeners = new();
+
+        private string name;
+
+        private MetricProvider(string name)
         {
-            this.ns = ns;
+            this.name = name;
         }
 
-        public void AttachListener(MetricListener listener)
+        public string GetName()
         {
-            // TODO: How to attach?
+            return name;
+        }
+        
+        public static MetricProvider GetProvider(string name)
+        {
+            return provider_registry.GetOrAdd(name, (k) => new MetricProvider(k));
         }
 
-        public static MetricProvider Default
+        public static MetricProvider DefaultProvider
         {
             get => default_provider;
         }
 
-        public string GetNamespace()
+        public bool AttachListener(MetricListener listener)
         {
-            return ns;
+            return listeners.TryAdd(listener, true);
         }
+
+        public bool DettachListener(MetricListener listener)
+        {
+            return listeners.TryRemove(KeyValuePair.Create(listener, true));
+        }
+
+        public ICollection<MetricListener> GetListeners()
+        {
+            return listeners.Keys;
+        }
+
     }
 }

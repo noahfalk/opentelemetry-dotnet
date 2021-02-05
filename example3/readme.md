@@ -102,3 +102,14 @@ Given pass experiences, handling and management of LabelSet will be a hot topic 
         );
     ```
 
+## Recording a measurement with constant time/space
+
+### Problem Statement
+When a measurement is recorded, the calculation/accumulation/aggregation is process synchronouosly per call.
+Thus, the timing for each recording can vary based on how the SDK is configured.  It may be desireable to have a constant
+time/space per recording.
+
+### Proposal
+Decouple the recording of measurments from the calculation/accumulation/aggregation of these measurements.
+One approach is to put a Queue between the concerns.  Recorded measurements are enqueued at constant time/space.
+A concurrent thread/task can dequeue measurements and do appropriate calculations and processing.

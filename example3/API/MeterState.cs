@@ -1,6 +1,6 @@
 namespace OpenTelmetry.Api
 {
-    public class MetricState
+    public class MeterState
     {
     }
 }

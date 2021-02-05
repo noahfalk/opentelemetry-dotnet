@@ -2,39 +2,35 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading;
+using System.Linq;
 
 namespace OpenTelmetry.Api
 {
     public abstract class MeterBase
     {
-        static protected List<MetricListener> registered = new();
-
-        public MetricListener listener { get; }
-
+        public MetricProvider provider { get; }
         public string MetricName { get; }
-
         public string MetricNamespace { get; }
-
         public string MetricType { get; }
-
         public LabelSet Labels { get; }
 
-        public virtual bool Enabled { get; set; }
+        public virtual bool Enabled { get; set; } = true;
 
-        public MetricState state { get; set; }
+        // Allow custom Meters to store their own state
+        public MeterState state { get; set; }
 
         protected MeterBase(MetricProvider provider, string name, string type, LabelSet labels)
         {
             MetricName = name;
-            MetricNamespace = provider.GetNamespace();
+            MetricNamespace = provider.GetName();
             MetricType = type;
             Labels = labels;
+            this.provider = provider;
 
-            var sources = registered;
-            if (sources.Count > 0)
+            // TODO: How to handle attach/detach of providers and listeners?
+            foreach (var listener in provider.GetListeners())
             {
-                listener = sources[sources.Count-1];
-                Enabled = listener.OnCreate(this, labels);
+                listener?.OnCreate(this, labels);
             }
         }
 
@@ -42,88 +38,11 @@ namespace OpenTelmetry.Api
         {
             if (Enabled)
             {
-                listener?.OnRecord(this, val, labels);
-            }
-        }
-
-        static public void RegisterSDK(MetricListener source)
-        {
-            while (true)
-            {
-                var oldSources = registered;
-
-                var newSources = new List<MetricListener>();
-                newSources.AddRange(oldSources);
-                newSources.Add(source);
-
-                var orgSources = Interlocked.CompareExchange(ref MeterBase.registered, newSources, oldSources);
-                if (orgSources == oldSources)
+                foreach (var listener in provider.GetListeners())
                 {
-                    break;
+                    listener?.OnRecord(this, val, labels);
                 }
             }
         }
-
-        /// <summary>
-        /// Allow Batching of recordings
-        /// </summary>
-        public class BatchBuilder
-        {
-            private List<Tuple<MeterBase, MetricValue>> batches = new();
-            private LabelSet labels;
-            private MetricListener listener;
-
-            public BatchBuilder(LabelSet labels)
-            {
-                this.labels = labels;
-            }
-
-            public BatchBuilder RecordMeasurement(MeterBase meter, int value)
-            {
-                // TODO: Handle case where we mix meters from different listeners!
-                if (meter.Enabled)
-                {
-                    if (listener is null)
-                    {
-                        listener = meter.listener;
-                    }
-
-                    if (meter.listener == listener)
-                    {
-                        batches.Add(Tuple.Create(meter, new MetricValue(value)));
-                    }
-                }
-
-                return this;
-            }
-
-            public BatchBuilder RecordMeasurement(MeterBase meter, double value)
-            {
-                // TODO: Handle case where we mix meters from different listeners!
-                if (meter.Enabled)
-                {
-                    if (listener is null)
-                    {
-                        listener = meter.listener;
-                    }
-
-                    if (meter.listener == listener)
-                    {
-                        batches.Add(Tuple.Create(meter, new MetricValue(value)));
-                    }
-                }
-
-                return this;
-            }
-
-            public void Record()
-            {
-                if (batches.Count > 0)
-                {
-                    listener.OnRecord(batches, labels);
-                }
-            }
-        }
-
     }
 }

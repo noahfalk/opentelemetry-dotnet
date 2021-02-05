@@ -8,13 +8,13 @@ using OpenTelmetry.Api;
 
 namespace OpenTelmetry.Sdk
 {
-    public class SampleSdk : MetricListener
+    public class SampleSdk
     {
         private readonly object lockMeters = new();
         private List<MeterBase> meters = new();
 
         private readonly object lockAggregateDict = new();
-        private Dictionary<string, AggregationState> aggregateDict = new();
+        private Dictionary<string, Aggregator> aggregateDict = new();
 
         private string name;
         private int collectPeriod_ms = 2000;
@@ -25,9 +25,28 @@ namespace OpenTelmetry.Sdk
 
         private Task collectTask;
 
+        private SdkListener listener;
+
+        private HashSet<MetricProvider> providers = new();
+
         public SampleSdk Name(string name)
         {
             this.name = name;
+            this.listener = new SdkListener(this);
+
+            return this;
+        }
+
+        public SampleSdk AttachProvider(MetricProvider provider)
+        {
+            providers.Add(provider);
+            return this;
+        }
+
+        public SampleSdk AttachProvider(string ns)
+        {
+            var provider = MetricProvider.GetProvider(ns);
+            providers.Add(provider);
             return this;
         }
 
@@ -45,8 +64,6 @@ namespace OpenTelmetry.Sdk
 
         public SampleSdk Build()
         {
-            isBuilt = true;
-
             // Start Periodic Collection Task
             collectTask = Task.Run(async () => {
                 while (!isExitRequest)
@@ -56,34 +73,26 @@ namespace OpenTelmetry.Sdk
                 }
             });
 
-            base.RegisterListener();
+            foreach (var provider in providers)
+            {
+                provider.AttachListener(listener);
+            }
+
+            isBuilt = true;
 
             return this;
         }
 
-        public bool IsStop()
-        {
-            return isExitRequest;
-        }
-        
         public void Stop()
         {
             isExitRequest = true;
 
-            collectTask.Wait();
-        }
-
-        public override bool OnCreate(MeterBase meter, LabelSet labels)
-        {
-            lock (lockMeters)
+            foreach (var provider in providers)
             {
-                meters.Add(meter);
-
-                // This SDK can store additional state data per meter
-                meter.state = new ExtraSDKState();
+                provider.DettachListener(listener);
             }
 
-            return true;
+            collectTask.Wait();
         }
 
         private List<Tuple<string,Type>> ExpandLabels(MeterBase meter, LabelSet labels)
@@ -133,28 +142,7 @@ namespace OpenTelmetry.Sdk
             return label_aggregates;
         }
 
-        public override bool OnRecord(MeterBase meter, MetricValue value, LabelSet labels)
-        {
-            var dt = DateTimeOffset.UtcNow;
-
-            return OnRecord(meter, dt, value, labels);
-        }
-
-        public override bool OnRecord(List<Tuple<MeterBase, MetricValue>> records, LabelSet labels)
-        {
-            var dt = DateTimeOffset.UtcNow;
-
-            // TODO: Need to handle as Atomic batch rather than dispatch individually
-
-            foreach (var record in records)
-            {
-                OnRecord(record.Item1, dt, record.Item2, labels);
-            }
-
-            return true;
-        }
-
-        private bool OnRecord(MeterBase meter, DateTimeOffset dt, MetricValue value, LabelSet labels)
+        public bool OnRecord(MeterBase meter, DateTimeOffset dt, MetricValue value, LabelSet labels)
         {
             if (isBuilt && meter.Enabled)
             {
@@ -168,10 +156,10 @@ namespace OpenTelmetry.Sdk
                         var key = tup.Item1;
                         var type = tup.Item2;
 
-                        AggregationState aggdata;
+                        Aggregator aggdata;
                         if (!aggregateDict.TryGetValue(key, out aggdata))
                         {
-                            aggdata = (AggregationState) Activator.CreateInstance(type);
+                            aggdata = (Aggregator) Activator.CreateInstance(type);
                             aggregateDict[key] = aggdata;
                         }
 
@@ -192,7 +180,7 @@ namespace OpenTelmetry.Sdk
             if (isBuilt)
             {
                 // Reset all aggregates!
-                var oldAggDict = Interlocked.Exchange(ref aggregateDict, new Dictionary<string, AggregationState>());
+                var oldAggDict = Interlocked.Exchange(ref aggregateDict, new Dictionary<string, Aggregator>());
 
                 StringBuilder sb = new StringBuilder();
 
@@ -220,77 +208,5 @@ namespace OpenTelmetry.Sdk
                 Console.WriteLine(sb.ToString());
             }
         }
-
-        public class ExtraSDKState : MetricState
-        {
-            // TODO: SDK can store additional state data for each meter
-        }
-
-        public abstract class AggregationState
-        {
-            public abstract void Update(MeterBase meter, MetricValue num);
-        }
-
-        public class CountSumMinMax : AggregationState
-        {
-            public int count = 0;
-            public double sum = 0;
-            public double max = 0;
-            public double min = 0;
-
-            public override void Update(MeterBase meter, MetricValue value)
-            {
-                double num = 0;
-                if (value.value is int i)
-                {
-                    num = i;
-                }
-                if (value.value is double d)
-                {
-                    num = d;
-                }
-
-                count++;
-                sum += num;
-                if (count == 1)
-                {
-                    min = num;
-                    max = num;
-                }
-                else
-                {
-                    min = Math.Min(min, num);
-                    max = Math.Max(max, num);
-                }
-            }
-        }
-
-        public class LabelHistogram : AggregationState
-        {
-            public Dictionary<string,int> bins = new();
-
-            public override void Update(MeterBase meter, MetricValue value)
-            {
-                var labels = meter.Labels.GetKeyValues();
-
-                var keys = new List<string>() { "_total" };
-
-                for (var n = 0; n < labels.Length; n+= 2)
-                {
-                    keys.Add($"{labels[n]}:{labels[n+1]}");
-                }
-
-                foreach (var key in keys)
-                {
-                    int count;
-                    if (!bins.TryGetValue(key, out count))
-                    {
-                        count = 0;
-                    }
-
-                    bins[key] = count + 1;
-                }
-            }
-        }
-    }
+   }
 }

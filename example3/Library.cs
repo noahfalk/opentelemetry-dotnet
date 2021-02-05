@@ -15,12 +15,12 @@ namespace MyLibrary
 
             // Create in custom provider
 
-            var provider = new MetricProvider("MyLibrary");
+            var provider = MetricProvider.GetProvider("MyLibrary");
             counter = provider.CreateCounter("requests", labels);
 
             // Create in Default provider
 
-            counter2 = MetricProvider.Default.CreateCounter("request2", labels);
+            counter2 = MetricProvider.DefaultProvider.CreateCounter("request2", labels);
 
             guage = new Guage("queue_size");
         }
@@ -41,9 +41,9 @@ namespace MyLibrary
 
             // Example of recording a batch of measurements
 
-            new MeterBase.BatchBuilder(labels)
-                .RecordMeasurement(counter, 100)
-                .RecordMeasurement(guage, 10.4)
+            new BatchMetricBuilder(labels)
+                .RecordMetric(counter, 100)
+                .RecordMetric(guage, 10.4)
                 .Record();
 
             count++;
