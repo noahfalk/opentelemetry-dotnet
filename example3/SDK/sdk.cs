@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Text;
@@ -24,10 +25,14 @@ namespace OpenTelmetry.Sdk
         private List<Tuple<string,string>> metricFilterList = new();
 
         private Task collectTask;
+        private Task dequeueTask;
 
         private SdkListener listener;
 
         private HashSet<MetricProvider> providers = new();
+
+        private ConcurrentQueue<Tuple<MeterBase,DateTimeOffset,MetricValue,LabelSet>> incomingQueue = new();
+        private bool useQueue = false;
 
         public SampleSdk Name(string name)
         {
@@ -68,6 +73,12 @@ namespace OpenTelmetry.Sdk
             return this;
         }
 
+        public SampleSdk UseQueue()
+        {
+            useQueue = true;
+            return this;
+        }
+
         public SampleSdk Build()
         {
             // Start Periodic Collection Task
@@ -81,6 +92,23 @@ namespace OpenTelmetry.Sdk
                     Collect();
                 }
             });
+
+            if (useQueue)
+            {
+                dequeueTask = Task.Run(async () => {
+                    while (!token.IsCancellationRequested)
+                    {
+                        if (incomingQueue.TryDequeue(out var record))
+                        {
+                            ProcessRecord(record.Item1, record.Item2, record.Item3, record.Item4);
+                        }
+                        else
+                        {
+                            await Task.Delay(100);
+                        }
+                    }
+                });
+            }
 
             foreach (var provider in providers)
             {
@@ -182,6 +210,17 @@ namespace OpenTelmetry.Sdk
         }
 
         public bool OnRecord(MeterBase meter, DateTimeOffset dt, MetricValue value, LabelSet labels)
+        {
+            if (useQueue)
+            {
+                incomingQueue.Enqueue(Tuple.Create(meter, dt, value, labels));
+                return true;
+            }
+
+            return ProcessRecord(meter, dt, value, labels);
+        }
+
+        private bool ProcessRecord(MeterBase meter, DateTimeOffset dt, MetricValue value, LabelSet labels)
         {
             if (isBuilt && meter.Enabled)
             {

@@ -17,6 +17,9 @@ namespace example3
                 .Name("MyProgram")
                 .SetCollectionPeriod(4000)
 
+                // Use Queue to ensure constant time/space per measurement recording
+                .UseQueue()
+
                 // Add Providers
                 .AttachProvider(MetricProvider.DefaultProvider)
                 .AttachProvider("MyLibrary")
