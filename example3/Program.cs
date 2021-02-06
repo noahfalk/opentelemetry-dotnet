@@ -11,6 +11,28 @@ namespace example3
     {
         static async Task Main(string[] args)
         {
+            bool isBenchmark = false;
+
+            foreach (var arg in args)
+            {
+                if (arg == "-benchmark")
+                {
+                    isBenchmark = true;
+                }
+            }
+
+            if (isBenchmark)
+            {
+               MyBenchmarks.Program.Run(args);
+               return;
+            }
+
+            var pgm = new Program();
+            await pgm.Run();
+        }
+
+        public async Task Run()
+        {
             // Example of setting up a SDK
 
             var sdk = new SampleSdk()
@@ -34,14 +56,13 @@ namespace example3
                 ;
 
             // Do our operations
-            var pgm = new Program();
-            await pgm.Run(5000);
+            await RunOperation(5000);
 
             // Stop our SDK
             sdk.Stop();
         }
 
-        public async Task Run(int periodMilliseconds)
+        public async Task RunOperation(int periodMilliseconds)
         {
             var rand = new Random();
 

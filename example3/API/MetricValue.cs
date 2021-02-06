@@ -4,9 +4,50 @@ using System.Runtime.InteropServices;
 namespace OpenTelmetry.Api
 {
     /// <summary>
-    /// MetricValue as a C# value type with minimum heap allocation
+    /// MetricValue as a C# value type with Boxing allocation
     /// </summary>
     public struct MetricValue
+    {
+        public MetricValueType valueType;
+        public object value;
+
+        public MetricValue(int v)
+        {
+            this.valueType = MetricValueType.intType;
+            this.value = (object) v;
+        }
+
+        public MetricValue(double v)
+        {
+            this.valueType = MetricValueType.doubleType;
+            this.value = (object) v;
+        }
+
+        public int ToInt32()
+        {
+            if (this.value is int v)
+            {
+                return v;
+            }
+
+            return 0;
+        }
+
+        public double ToDouble()
+        {
+            if (this.value is double v)
+            {
+                return v;
+            }
+            
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// MetricValue as a C# value type with minimum heap allocation
+    /// </summary>
+    public struct MetricValueSpan
     {
         public MetricValueType valueType;
 
@@ -19,7 +60,7 @@ namespace OpenTelmetry.Api
         private byte b6;
         private byte b7;
 
-        public MetricValue(int v)
+        public MetricValueSpan(int v)
         {
             this.valueType = MetricValueType.intType;
 
@@ -35,7 +76,7 @@ namespace OpenTelmetry.Api
             b7 = 0;
         }
 
-        public MetricValue(double v)
+        public MetricValueSpan(double v)
         {
             this.valueType = MetricValueType.doubleType;
             
@@ -81,47 +122,6 @@ namespace OpenTelmetry.Api
 
             var v = BitConverter.ToDouble(buffer);
             return v;
-        }
-    }
-
-    /// <summary>
-    /// MetricValue as a C# value type with Boxing allocation
-    /// </summary>
-    public struct MetricValueBoxing
-    {
-        public MetricValueType valueType;
-        public object value;
-
-        public MetricValueBoxing(int v)
-        {
-            this.valueType = MetricValueType.intType;
-            this.value = (object) v;
-        }
-
-        public MetricValueBoxing(double v)
-        {
-            this.valueType = MetricValueType.doubleType;
-            this.value = (object) v;
-        }
-
-        public int ToInt()
-        {
-            if (this.value is int v)
-            {
-                return v;
-            }
-
-            return 0;
-        }
-
-        public double ToDouble()
-        {
-            if (this.value is double v)
-            {
-                return v;
-            }
-            
-            return 0;
         }
     }
 
