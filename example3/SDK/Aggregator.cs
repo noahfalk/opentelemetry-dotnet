@@ -20,13 +20,16 @@ namespace OpenTelmetry.Sdk
         public override void Update(MeterBase meter, MetricValue value, LabelSet labels)
         {
             double num = 0;
-            if (value.value is int i)
+            
+            switch (value.valueType)
             {
-                num = i;
-            }
-            if (value.value is double d)
-            {
-                num = d;
+                case MetricValueType.intType:
+                    num = value.ToInt32();
+                    break;
+
+                case MetricValueType.doubleType:
+                    num = value.ToDouble();
+                    break;
             }
 
             count++;
