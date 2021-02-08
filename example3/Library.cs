@@ -1,3 +1,6 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using OpenTelmetry.Api;
 
 namespace MyLibrary
@@ -10,7 +13,7 @@ namespace MyLibrary
         Guage guage_qsize;
         int count = 0;
 
-        public Library(string name)
+        public Library(string name, CancellationToken token)
         {
             var labels = new LabelSet(new string[] { 
                 "Program", "Test",
@@ -30,6 +33,21 @@ namespace MyLibrary
 
             counter_request3 = new Counter("request3");
 
+            // Setup a callback Observer for a meter
+            counter_request3.SetObserver((m) => {
+                int val = count;
+                var labels = new LabelSet(new string[] { 
+                    "LibraryInstanceName", name,
+                    "Mode", "Observer",
+                    });
+                return Tuple.Create(new MetricValue(val), labels);
+            });
+
+            // Setup a task to observe Meter periodically
+            Task t = new MeterObserverBuilder()
+                .SetMetronome(1000)
+                .AddMeter(counter_request3)
+                .Run(token);
 
             // Create in custom provider
 
@@ -55,6 +73,7 @@ namespace MyLibrary
 
             counter_request2.Add(0.15, labels);
 
+            //counter_request3.Observe();
 
             // Example of recording a batch of measurements
 

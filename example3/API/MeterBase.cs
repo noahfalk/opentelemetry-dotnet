@@ -17,6 +17,8 @@ namespace OpenTelmetry.Api
 
         public virtual bool Enabled { get; set; } = true;
 
+        protected Func<MeterBase, Tuple<MetricValue,LabelSet>> observer;
+
         // Allow custom Meters to store their own state
         public MeterState state { get; set; }
 
@@ -44,6 +46,20 @@ namespace OpenTelmetry.Api
                 {
                     listener?.OnRecord(this, val, labels);
                 }
+            }
+        }
+
+        public void SetObserver(Func<MeterBase, Tuple<MetricValue,LabelSet>> func)
+        {
+            observer = func;
+        }
+
+        public void Observe()
+        {
+            if (Enabled && observer is not null)
+            {
+                var tup = observer(this);
+                RecordMetricData(tup.Item1, tup.Item2);
             }
         }
     }

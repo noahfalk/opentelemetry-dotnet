@@ -70,7 +70,7 @@ namespace example3
             var token = cancelToken.Token;
 
             Task t1 = Task.Run(async () => {
-                var lib = new Library("Library_1");
+                var lib = new Library("Library_1", token);
                 while (!token.IsCancellationRequested)
                 {
                     lib.DoOperation();
@@ -79,7 +79,7 @@ namespace example3
             });
 
             Task t2 = Task.Run(async () => {
-                var lib = new Library("Library_2");
+                var lib = new Library("Library_2", token);
                 while (!token.IsCancellationRequested)
                 {
                     lib.DoOperation();
