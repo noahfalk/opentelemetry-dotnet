@@ -18,6 +18,12 @@ namespace MyBenchmarks
         MetricValueSpan iSpan;
         MetricValueSpan dSpan;
 
+        MetricValueField iField;
+        MetricValueField dField;
+
+        MetricValueGeneric<int> iGeneric;
+        MetricValueGeneric<double> dGeneric;
+
         [GlobalSetup]
         public void Setup()
         {
@@ -26,6 +32,12 @@ namespace MyBenchmarks
 
             iSpan = new MetricValueSpan(10);
             dSpan = new MetricValueSpan(10.5);
+
+            iField = new MetricValueField(10);
+            dField = new MetricValueField(10.5);
+
+            iGeneric = new MetricValueGeneric<int>(10);
+            dGeneric = new MetricValueGeneric<double>(10.5);
         }
 
         [Benchmark]
@@ -74,6 +86,54 @@ namespace MyBenchmarks
         public double toDoubleSpan()
         {
             return dSpan.ToDouble();
+        }
+
+        [Benchmark]
+        public MetricValueField newIntField()
+        {
+            return new MetricValueField(10);
+        }
+
+        [Benchmark]
+        public MetricValueField newDoubleField()
+        {
+            return new MetricValueField(10.1);
+        }
+
+        [Benchmark]
+        public int toIntField()
+        {
+            return iField.ToInt32();
+        }
+
+        [Benchmark]
+        public double toDoubleField()
+        {
+            return dField.ToDouble();
+        }
+
+        [Benchmark]
+        public MetricValueGeneric<int> newIntGeneric()
+        {
+            return new MetricValueGeneric<int>(10);
+        }
+
+        [Benchmark]
+        public MetricValueGeneric<double> newDoubleGeneric()
+        {
+            return new MetricValueGeneric<double>(10.1);
+        }
+
+        [Benchmark]
+        public int toIntGeneric()
+        {
+            return iGeneric.ToInt32();
+        }
+
+        [Benchmark]
+        public double toDoubleGeneric()
+        {
+            return dGeneric.ToDouble();
         }
     }
 

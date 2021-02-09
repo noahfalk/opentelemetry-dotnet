@@ -44,6 +44,79 @@ namespace OpenTelmetry.Api
         }
     }
 
+    [StructLayout(LayoutKind.Explicit)]
+    public struct MetricValueField
+    {
+        [FieldOffset(0)]
+        public MetricValueType valueType;
+
+        [FieldOffset(4)]
+        private int intValue;
+
+        [FieldOffset(4)]
+        private double doubleValue;
+
+        public MetricValueField(int v)
+        {
+            valueType = MetricValueType.intType;
+            doubleValue = 0;
+            intValue = v;
+        }
+
+        public MetricValueField(double v)
+        {
+            valueType = MetricValueType.doubleType;
+            intValue = 0;
+            doubleValue = v;
+        }
+
+        public int ToInt32()
+        {
+            if (valueType == MetricValueType.intType)
+            {
+                return intValue;
+            }
+            return default;
+        }
+
+        public double ToDouble()
+        {
+            if (valueType == MetricValueType.doubleType)
+            {
+                return doubleValue;
+            }
+            return default;
+        }
+    }
+
+    public struct MetricValueGeneric<T>
+    {
+        private T value;
+
+        public MetricValueGeneric(T v)
+        {
+            value = v;
+        }
+
+        public int ToInt32()
+        {
+            if (value is int v)
+            {
+                return v;
+            }
+            return default;
+        }
+
+        public double ToDouble()
+        {
+            if (value is double v)
+            {
+                return v;
+            }
+            return default;
+        }
+    }
+
     /// <summary>
     /// MetricValue as a C# value type with minimum heap allocation
     /// </summary>
