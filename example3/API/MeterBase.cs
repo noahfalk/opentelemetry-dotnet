@@ -8,7 +8,7 @@ namespace OpenTelmetry.Api
 {
     public abstract class MeterBase
     {
-        public MetricProvider provider { get; }
+        public MetricSource source { get; }
         public string MetricName { get; }
         public string MetricNamespace { get; }
         public string MetricType { get; }
@@ -22,17 +22,17 @@ namespace OpenTelmetry.Api
         // Allow custom Meters to store their own state
         public MeterState state { get; set; }
 
-        protected MeterBase(MetricProvider provider, string name, string type, LabelSet labels, LabelSet hints)
+        protected MeterBase(MetricSource source, string name, string type, LabelSet labels, LabelSet hints)
         {
             MetricName = name;
-            MetricNamespace = provider.GetName();
+            MetricNamespace = source.GetName();
             MetricType = type;
             Labels = labels;
             Hints = hints;
-            this.provider = provider;
+            this.source = source;
 
-            // TODO: How to handle attach/detach of providers and listeners?
-            foreach (var listener in provider.GetListeners())
+            // TODO: How to handle attach/detach of sources and listeners?
+            foreach (var listener in source.GetListeners())
             {
                 listener?.OnCreate(this, labels);
             }
@@ -42,7 +42,7 @@ namespace OpenTelmetry.Api
         {
             if (Enabled)
             {
-                foreach (var listener in provider.GetListeners())
+                foreach (var listener in source.GetListeners())
                 {
                     listener?.OnRecord(this, val, labels);
                 }

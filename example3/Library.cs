@@ -20,11 +20,11 @@ namespace MyLibrary
                 "LibraryInstanceName", name,
                 });
 
-            // Create in Default provider
+            // Create in Default source
 
-            counter_request = MetricProvider.DefaultProvider.CreateCounter("request2", labels);
+            counter_request = MetricSource.DefaultSource.CreateCounter("request2", labels);
 
-            guage_qsize = new Guage(MetricProvider.DefaultProvider, "queue_size", LabelSet.Empty, 
+            guage_qsize = new Guage(MetricSource.DefaultSource, "queue_size", LabelSet.Empty, 
                 new LabelSet(new string[] { 
                     "Description", "A measure of Queue size",
                     "DefaultAggregator", "Histogram",
@@ -49,13 +49,13 @@ namespace MyLibrary
                 .AddMeter(counter_request3)
                 .Run(token);
 
-            // Create in custom provider
+            // Create in custom source
 
-            var provider = MetricProvider.GetProvider("MyLibrary");
+            var source = MetricSource.GetSource("MyLibrary");
 
-            counter_request2 = provider.CreateCounter("requests", labels);
+            counter_request2 = source.CreateCounter("requests", labels);
 
-            var counter_registered = new Counter(provider, "registered");
+            var counter_registered = new Counter(source, "registered");
             counter_registered.Add(1, labels);
         }
 

@@ -42,9 +42,9 @@ namespace example3
                 // Use Queue to ensure constant time/space per measurement recording
                 .UseQueue()
 
-                // Add Providers
-                .AttachProvider(MetricProvider.DefaultProvider)
-                .AttachProvider("MyLibrary")
+                // Add Metric Sources
+                .AttachSource(MetricSource.DefaultSource)
+                .AttachSource("MyLibrary")
 
                 // Add Filters.  Order matters.  Can be stacked.
                 //.AddMetricInclusion("/MyLibrary/")

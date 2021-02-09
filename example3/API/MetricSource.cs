@@ -3,20 +3,20 @@ using System.Collections.Concurrent;
 
 namespace OpenTelmetry.Api
 {
-    public class MetricProvider
+    public class MetricSource
     {
-        // singleton Default Provider
-        private static MetricProvider default_provider = new MetricProvider("DefaultProvider");
+        // singleton Default Source
+        private static MetricSource default_source = new MetricSource("DefaultSource");
 
-        // Global list of all providers
-        private static ConcurrentDictionary<string,MetricProvider> provider_registry = new();
+        // Global list of all sources
+        private static ConcurrentDictionary<string,MetricSource> source_registry = new();
 
-        // All listeners on this provider
+        // All listeners on this source
         private ConcurrentDictionary<MetricListener, bool> listeners = new();
 
         private string name;
 
-        private MetricProvider(string name)
+        private MetricSource(string name)
         {
             this.name = name;
         }
@@ -26,14 +26,14 @@ namespace OpenTelmetry.Api
             return name;
         }
         
-        public static MetricProvider GetProvider(string name)
+        public static MetricSource GetSource(string name)
         {
-            return provider_registry.GetOrAdd(name, (k) => new MetricProvider(k));
+            return source_registry.GetOrAdd(name, (k) => new MetricSource(k));
         }
 
-        public static MetricProvider DefaultProvider
+        public static MetricSource DefaultSource
         {
-            get => default_provider;
+            get => default_source;
         }
 
         public bool AttachListener(MetricListener listener)

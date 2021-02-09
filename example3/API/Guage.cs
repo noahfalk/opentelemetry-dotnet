@@ -6,27 +6,27 @@ namespace OpenTelmetry.Api
     public class Guage : MeterBase
     {
         public Guage(string name) 
-            : base(MetricProvider.DefaultProvider, name, "Guage", LabelSet.Empty, LabelSet.Empty)
+            : base(MetricSource.DefaultSource, name, "Guage", LabelSet.Empty, LabelSet.Empty)
         {
         }
 
         public Guage(string name, LabelSet labels) 
-            : base(MetricProvider.DefaultProvider, name, "Guage", labels, LabelSet.Empty)
+            : base(MetricSource.DefaultSource, name, "Guage", labels, LabelSet.Empty)
         {
         }
 
-        public Guage(MetricProvider provider, string name) 
-            : base(provider, name, "Guage", LabelSet.Empty, LabelSet.Empty)
+        public Guage(MetricSource source, string name) 
+            : base(source, name, "Guage", LabelSet.Empty, LabelSet.Empty)
         {
         }
 
-        public Guage(MetricProvider provider, string name, LabelSet labels) 
-            : base(provider, name, "Guage", labels, LabelSet.Empty)
+        public Guage(MetricSource source, string name, LabelSet labels) 
+            : base(source, name, "Guage", labels, LabelSet.Empty)
         {
         }
 
-        public Guage(MetricProvider provider, string name, LabelSet labels, LabelSet hints) 
-            : base(provider, name, "Guage", labels, hints)
+        public Guage(MetricSource source, string name, LabelSet labels, LabelSet hints) 
+            : base(source, name, "Guage", labels, hints)
         {
         }
 
@@ -51,16 +51,16 @@ namespace OpenTelmetry.Api
         }
     }
 
-    public static partial class MetricProviderExtensions
+    public static partial class MetricSourceExtensions
     {
-        public static Guage CreateGuage(this MetricProvider provider, string name)
+        public static Guage CreateGuage(this MetricSource source, string name)
         {
-            return new Guage(provider, name);
+            return new Guage(source, name);
         }
 
-        public static Guage CreateGuage(this MetricProvider provider, string name, LabelSet labels)
+        public static Guage CreateGuage(this MetricSource source, string name, LabelSet labels)
         {
-            return new Guage(provider, name, labels);
+            return new Guage(source, name, labels);
         }
     }
 

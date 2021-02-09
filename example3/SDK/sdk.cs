@@ -29,7 +29,7 @@ namespace OpenTelmetry.Sdk
 
         private SdkListener listener;
 
-        private HashSet<MetricProvider> providers = new();
+        private HashSet<MetricSource> sources = new();
 
         private ConcurrentQueue<Tuple<MeterBase,DateTimeOffset,object,LabelSet>> incomingQueue = new();
         private bool useQueue = false;
@@ -42,16 +42,16 @@ namespace OpenTelmetry.Sdk
             return this;
         }
 
-        public SampleSdk AttachProvider(MetricProvider provider)
+        public SampleSdk AttachSource(MetricSource source)
         {
-            providers.Add(provider);
+            sources.Add(source);
             return this;
         }
 
-        public SampleSdk AttachProvider(string ns)
+        public SampleSdk AttachSource(string ns)
         {
-            var provider = MetricProvider.GetProvider(ns);
-            providers.Add(provider);
+            var source = MetricSource.GetSource(ns);
+            sources.Add(source);
             return this;
         }
 
@@ -110,9 +110,9 @@ namespace OpenTelmetry.Sdk
                 });
             }
 
-            foreach (var provider in providers)
+            foreach (var source in sources)
             {
-                provider.AttachListener(listener);
+                source.AttachListener(listener);
             }
 
             isBuilt = true;
@@ -124,9 +124,9 @@ namespace OpenTelmetry.Sdk
         {
             cancelTokenSrc.Cancel();
 
-            foreach (var provider in providers)
+            foreach (var source in sources)
             {
-                provider.DettachListener(listener);
+                source.DettachListener(listener);
             }
 
             collectTask.Wait();

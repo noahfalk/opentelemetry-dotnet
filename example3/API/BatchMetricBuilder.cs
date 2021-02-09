@@ -29,8 +29,8 @@ namespace OpenTelmetry.Api
         {
             // TODO: Need to optimize this
 
-            var groupings = batches.GroupBy((k) => k.Item1.provider, (j) => j, (k,v) => new {
-                provider = k,
+            var groupings = batches.GroupBy((k) => k.Item1.source, (j) => j, (k,v) => new {
+                source = k,
                 batch = v,
             });
 
@@ -38,7 +38,7 @@ namespace OpenTelmetry.Api
             {
                 if (group.batch.Count() > 0)
                 {
-                    foreach (var listener in group.provider.GetListeners())
+                    foreach (var listener in group.source.GetListeners())
                     {
                         listener.OnRecord(group.batch.ToList(), labels);
                     }

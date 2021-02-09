@@ -6,27 +6,27 @@ namespace OpenTelmetry.Api
     public class Counter : MeterBase
     {
         public Counter(string name) 
-            : base(MetricProvider.DefaultProvider, name, "Counter", LabelSet.Empty, LabelSet.Empty)
+            : base(MetricSource.DefaultSource, name, "Counter", LabelSet.Empty, LabelSet.Empty)
         {
         }
 
         public Counter(string name, LabelSet labels) 
-            : base(MetricProvider.DefaultProvider, name, "Counter", labels, LabelSet.Empty)
+            : base(MetricSource.DefaultSource, name, "Counter", labels, LabelSet.Empty)
         {
         }
 
-        public Counter(MetricProvider provider, string name) 
-            : base(provider, name, "Counter", LabelSet.Empty, LabelSet.Empty)
+        public Counter(MetricSource source, string name) 
+            : base(source, name, "Counter", LabelSet.Empty, LabelSet.Empty)
         {
         }
 
-        public Counter(MetricProvider provider, string name, LabelSet labels) 
-            : base(provider, name, "Counter", labels, LabelSet.Empty)
+        public Counter(MetricSource source, string name, LabelSet labels) 
+            : base(source, name, "Counter", labels, LabelSet.Empty)
         {
         }
 
-        public Counter(MetricProvider provider, string name, LabelSet labels, LabelSet hints) 
-            : base(provider, name, "Counter", labels, hints)
+        public Counter(MetricSource source, string name, LabelSet labels, LabelSet hints) 
+            : base(source, name, "Counter", labels, hints)
         {
         }
 
@@ -52,16 +52,16 @@ namespace OpenTelmetry.Api
         }
     }
 
-    public static partial class MetricProviderExtensions
+    public static partial class MetricSourceExtensions
     {
-        public static Counter CreateCounter(this MetricProvider provider, string name)
+        public static Counter CreateCounter(this MetricSource source, string name)
         {
-            return new Counter(provider, name);
+            return new Counter(source, name);
         }
 
-        public static Counter CreateCounter(this MetricProvider provider, string name, LabelSet labels)
+        public static Counter CreateCounter(this MetricSource source, string name, LabelSet labels)
         {
-            return new Counter(provider, name, labels);
+            return new Counter(source, name, labels);
         }
     }
 }
