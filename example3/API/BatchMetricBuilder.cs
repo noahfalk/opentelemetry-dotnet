@@ -11,7 +11,7 @@ namespace OpenTelmetry.Api
     /// </summary>
     public class BatchMetricBuilder
     {
-        private List<Tuple<MeterBase, MetricValue>> batches = new();
+        private List<Tuple<MeterBase, object>> batches = new();
         private LabelSet labels;
 
         public BatchMetricBuilder(LabelSet labels)
@@ -19,20 +19,9 @@ namespace OpenTelmetry.Api
             this.labels = labels;
         }
 
-        public BatchMetricBuilder RecordMetric(MeterBase meter, int value)
+        public BatchMetricBuilder RecordMetric<T>(MeterBase meter, T value)
         {
-            return RecordMetric(meter, new MetricValue(value));
-        }
-
-        public BatchMetricBuilder RecordMetric(MeterBase meter, double value)
-        {
-            return RecordMetric(meter, new MetricValue(value));
-        }
-
-        public BatchMetricBuilder RecordMetric(MeterBase meter, MetricValue value)
-        {
-            batches.Add(Tuple.Create(meter, value));
-
+            batches.Add(Tuple.Create(meter, (object) value));
             return this;
         }
 

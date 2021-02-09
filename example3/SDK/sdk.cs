@@ -31,7 +31,7 @@ namespace OpenTelmetry.Sdk
 
         private HashSet<MetricProvider> providers = new();
 
-        private ConcurrentQueue<Tuple<MeterBase,DateTimeOffset,MetricValue,LabelSet>> incomingQueue = new();
+        private ConcurrentQueue<Tuple<MeterBase,DateTimeOffset,object,LabelSet>> incomingQueue = new();
         private bool useQueue = false;
 
         public SampleSdk Name(string name)
@@ -209,18 +209,18 @@ namespace OpenTelmetry.Sdk
             return label_aggregates;
         }
 
-        public bool OnRecord(MeterBase meter, DateTimeOffset dt, MetricValue value, LabelSet labels)
+        public bool OnRecord<T>(MeterBase meter, DateTimeOffset dt, T value, LabelSet labels)
         {
             if (useQueue)
             {
-                incomingQueue.Enqueue(Tuple.Create(meter, dt, value, labels));
+                incomingQueue.Enqueue(Tuple.Create(meter, dt, (object) value, labels));
                 return true;
             }
 
-            return ProcessRecord(meter, dt, value, labels);
+            return ProcessRecord<T>(meter, dt, value, labels);
         }
 
-        private bool ProcessRecord(MeterBase meter, DateTimeOffset dt, MetricValue value, LabelSet labels)
+        private bool ProcessRecord<T>(MeterBase meter, DateTimeOffset dt, T value, LabelSet labels)
         {
             if (isBuilt && meter.Enabled)
             {

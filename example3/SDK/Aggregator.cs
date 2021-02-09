@@ -7,7 +7,7 @@ namespace OpenTelmetry.Sdk
 {
     public abstract class Aggregator
     {
-        public abstract void Update(MeterBase meter, MetricValue num, LabelSet labels);
+        public abstract void Update<T>(MeterBase meter, T num, LabelSet labels);
     }
 
     public class CountSumMinMax : Aggregator
@@ -17,21 +17,19 @@ namespace OpenTelmetry.Sdk
         public double max = 0;
         public double min = 0;
 
-        public override void Update(MeterBase meter, MetricValue value, LabelSet labels)
+        public override void Update<T>(MeterBase meter, T value, LabelSet labels)
         {
             double num = 0;
-            
-            switch (value.valueType)
+
+            if (value is int i)
             {
-                case MetricValueType.intType:
-                    num = value.ToInt32();
-                    break;
-
-                case MetricValueType.doubleType:
-                    num = value.ToDouble();
-                    break;
+                num = i;
             }
-
+            else if (value is double d)
+            {
+                num = d;
+            }
+            
             count++;
             sum += num;
             if (count == 1)
@@ -51,7 +49,7 @@ namespace OpenTelmetry.Sdk
     {
         public Dictionary<string,int> bins = new();
 
-        public override void Update(MeterBase meter, MetricValue value, LabelSet labels)
+        public override void Update<T>(MeterBase meter, T value, LabelSet labels)
         {
             var effectiveLabels = new Dictionary<string,string>();
 

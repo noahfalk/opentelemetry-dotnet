@@ -32,22 +32,22 @@ namespace OpenTelmetry.Api
 
         public void Record(int num)
         {
-            RecordMetricData(new MetricValue(num), LabelSet.Empty);
+            RecordMetricData(num, LabelSet.Empty);
         }
 
         public void Record(int num, LabelSet labels)
         {
-            RecordMetricData(new MetricValue(num), labels);
+            RecordMetricData(num, labels);
         }
 
         public void Record(double num)
         {
-            RecordMetricData(new MetricValue(num), LabelSet.Empty);
+            RecordMetricData(num, LabelSet.Empty);
         }
 
         public void Record(double num, LabelSet labels)
         {
-            RecordMetricData(new MetricValue(num), labels);
+            RecordMetricData(num, labels);
         }
     }
 

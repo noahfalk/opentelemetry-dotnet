@@ -33,22 +33,22 @@ namespace OpenTelmetry.Api
         public void Add(int num)
         {
             // TODO: Do we need to support passing native numbers to SDK?
-            RecordMetricData(new MetricValue(num), LabelSet.Empty);
+            RecordMetricData(num, LabelSet.Empty);
         }
 
         public void Add(int num, LabelSet labels)
         {
-            RecordMetricData(new MetricValue(num), labels);
+            RecordMetricData(num, labels);
         }
 
         public void Add(double num)
         {
-            RecordMetricData(new MetricValue(num), LabelSet.Empty);
+            RecordMetricData(num, LabelSet.Empty);
         }
 
         public void Add(double num, LabelSet labels)
         {
-            RecordMetricData(new MetricValue(num), labels);
+            RecordMetricData(num, labels);
         }
     }
 

@@ -1,23 +1,23 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace OpenTelmetry.Api
+namespace OpenTelmetry.Sdk
 {
     /// <summary>
     /// MetricValue as a C# value type with Boxing allocation
     /// </summary>
-    public struct MetricValue
+    public struct MetricValueBox
     {
         public MetricValueType valueType;
         public object value;
 
-        public MetricValue(int v)
+        public MetricValueBox(int v)
         {
             this.valueType = MetricValueType.intType;
             this.value = (object) v;
         }
 
-        public MetricValue(double v)
+        public MetricValueBox(double v)
         {
             this.valueType = MetricValueType.doubleType;
             this.value = (object) v;

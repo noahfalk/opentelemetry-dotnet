@@ -25,14 +25,14 @@ namespace OpenTelmetry.Sdk
             return true;
         }
 
-        public override bool OnRecord(MeterBase meter, MetricValue value, LabelSet labels)
+        public override bool OnRecord<T>(MeterBase meter, T value, LabelSet labels)
         {
             var dt = DateTimeOffset.UtcNow;
 
             return sdk.OnRecord(meter, dt, value, labels);
         }
 
-        public override bool OnRecord(IList<Tuple<MeterBase, MetricValue>> records, LabelSet labels)
+        public override bool OnRecord<T>(IList<Tuple<MeterBase, T>> records, LabelSet labels)
         {
             var dt = DateTimeOffset.UtcNow;
 
@@ -40,7 +40,9 @@ namespace OpenTelmetry.Sdk
 
             foreach (var record in records)
             {
-                sdk.OnRecord(record.Item1, dt, record.Item2, labels);
+                var meter = record.Item1;
+                var value = record.Item2;
+                sdk.OnRecord(meter, dt, value, labels);
             }
 
             return true;

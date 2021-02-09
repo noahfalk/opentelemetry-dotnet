@@ -40,7 +40,7 @@ namespace MyLibrary
                     "LibraryInstanceName", name,
                     "Mode", "Observer",
                     });
-                return Tuple.Create(new MetricValue(val), labels);
+                return Tuple.Create((object)val, labels);
             });
 
             // Setup a task to observe Meter periodically

@@ -16,11 +16,11 @@ namespace OpenTelmetry.Api
         /// <summary>
         /// Let SDK know when new measures are recorded
         /// </summary>
-        public abstract bool OnRecord(MeterBase meter, MetricValue value, LabelSet labels);
+        public abstract bool OnRecord<T>(MeterBase meter, T value, LabelSet labels);
 
         /// <summary>
         /// Allow multiple measurements to be recorded atomicly
         /// </summary>
-        public abstract bool OnRecord(IList<Tuple<MeterBase, MetricValue>> records, LabelSet labels);
+        public abstract bool OnRecord<T>(IList<Tuple<MeterBase, T>> records, LabelSet labels);
     }
 }
