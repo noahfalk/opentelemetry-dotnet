@@ -63,5 +63,10 @@ namespace OpenTelmetry.Api
         {
             return new Counter(source, name, labels);
         }
+
+        public static Counter CreateCounter(this MetricSource source, string name, LabelSet labels, LabelSet hints)
+        {
+            return new Counter(source, name, labels, hints);
+        }
     }
 }

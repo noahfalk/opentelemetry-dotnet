@@ -62,6 +62,11 @@ namespace OpenTelmetry.Api
         {
             return new Guage(source, name, labels);
         }
+
+        public static Guage CreateGuage(this MetricSource source, string name, LabelSet labels, LabelSet hints)
+        {
+            return new Guage(source, name, labels, hints);
+        }
     }
 
 }
