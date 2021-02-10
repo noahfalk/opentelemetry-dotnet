@@ -15,20 +15,18 @@ namespace MyLibrary
 
         public Library(string name, CancellationToken token)
         {
-            var labels = new LabelSet(new string[] { 
+            var labels = new LabelSet(
                 "Program", "Test",
-                "LibraryInstanceName", name,
-                });
+                "LibraryInstanceName", name);
 
             // Create in Default source
 
             counter_request = MetricSource.DefaultSource.CreateCounter("request2", labels);
 
             guage_qsize = new Guage(MetricSource.DefaultSource, "queue_size", LabelSet.Empty, 
-                new LabelSet(new string[] { 
+                new LabelSet(
                     "Description", "A measure of Queue size",
-                    "DefaultAggregator", "Histogram",
-                    })
+                    "DefaultAggregator", "Histogram")
                 );
 
             counter_request3 = new Counter("request3");
@@ -36,10 +34,9 @@ namespace MyLibrary
             // Setup a callback Observer for a meter
             counter_request3.SetObserver((m) => {
                 int val = count;
-                var labels = new LabelSet(new string[] { 
+                var labels = new LabelSet(
                     "LibraryInstanceName", name,
-                    "Mode", "Observer",
-                    });
+                    "Mode", "Observer");
                 return Tuple.Create((object)val, labels);
             });
 
@@ -65,9 +62,7 @@ namespace MyLibrary
 
             var opernum = count % 3;
 
-            var labels = new LabelSet(new string[] { 
-                "OperNum", $"{opernum}",
-                });
+            var labels = new LabelSet("OperNum", $"{opernum}");
 
             counter_request2.Add(1);
 
@@ -77,10 +72,9 @@ namespace MyLibrary
 
             // Example of recording a batch of measurements
 
-            var labels2 = new LabelSet(new string[] { 
+            var labels2 = new LabelSet(
                 "OperNum", $"{opernum}",
-                "Mode", "Batch",
-                });
+                "Mode", "Batch");
 
             new BatchMetricBuilder(labels2)
                 .RecordMetric(counter_request, 1.0)

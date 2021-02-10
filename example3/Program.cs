@@ -23,7 +23,7 @@ namespace example3
 
             if (isBenchmark)
             {
-               MyBenchmarks.Program.Run(args);
+               MyBenchmark.Program.Run(args);
                return;
             }
 
