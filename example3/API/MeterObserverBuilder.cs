@@ -33,13 +33,15 @@ namespace OpenTelmetry.Api
                 try
                 {
                     await Task.Delay(period, token);
+
                     while (!token.IsCancellationRequested)
                     {
                         RunObserver();
+                        
                         await Task.Delay(period, token);
                     }
                 }
-                catch (TaskCanceledException _)
+                catch (TaskCanceledException)
                 {
                     // Ignore
                 }

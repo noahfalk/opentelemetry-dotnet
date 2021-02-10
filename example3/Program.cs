@@ -63,6 +63,8 @@ namespace example3
                         "Mode", "Batch" )
                     )
 
+                .AddExporter(new ConsoleExporter("export1", 6000))
+
                 // Finalize pipeline
                 .Build()
                 ;

@@ -66,7 +66,7 @@ namespace Example
         {
             // Create Metric Pipeline
             var pipeline = new SampleSdk()
-                .Name("OrderPipeline")
+                .Name("OrderPipeline1")
                 .AttachSource("StoreMetrics")
                 .AggregateByLabels(typeof(CountSumMinMax), 
                     new LabelSet("Customer", "*"),
@@ -75,6 +75,16 @@ namespace Example
                     new LabelSet("Store", "*", "Item", "*")
                     )
                 .AggregateByLabels(typeof(LabelHistogram))
+                .AddExporter(new ConsoleExporter("export1", 6000))
+                .Build();
+
+            var pipeline2 = new SampleSdk()
+                .Name("OrderPipeline2")
+                .AttachSource("StoreMetrics")
+                .SetCollectionPeriod(6000)
+                .AggregateByLabels(typeof(LabelHistogram))
+                .AddExporter(new ConsoleExporter("export2", 1000))
+                .AddExporter(new ConsoleExporter("export3", 6000))
                 .Build();
 
 
@@ -87,6 +97,7 @@ namespace Example
 
             // Shutdown Metric Pipeline
             pipeline.Stop();
+            pipeline2.Stop();
         }
 
         /*

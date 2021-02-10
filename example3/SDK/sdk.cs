@@ -26,6 +26,8 @@ namespace OpenTelmetry.Sdk
 
         private List<(Type aggType, LabelSet[] labels)> aggregateByLabelSet = new();
 
+        private List<Exporter> exporters = new();
+
         private Task collectTask;
         private Task dequeueTask;
 
@@ -75,6 +77,12 @@ namespace OpenTelmetry.Sdk
             return this;
         }
 
+        public SampleSdk AddExporter(Exporter exporter)
+        {
+            exporters.Add(exporter);
+            return this;
+        }
+
         public SampleSdk SetCollectionPeriod(int milliseconds)
         {
             collectPeriod_ms = milliseconds;
@@ -96,8 +104,21 @@ namespace OpenTelmetry.Sdk
             collectTask = Task.Run(async () => {
                 while (!token.IsCancellationRequested)
                 {
-                    await Task.Delay(this.collectPeriod_ms);
-                    Collect();
+                    try
+                    {
+                        await Task.Delay(this.collectPeriod_ms, token);
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        // Do Nothing
+                    }
+
+                    var export = Collect();
+
+                    foreach (var exporter in exporters)
+                    {
+                        exporter.Export(export);
+                    }
                 }
             });
 
@@ -112,7 +133,14 @@ namespace OpenTelmetry.Sdk
                         }
                         else
                         {
-                            await Task.Delay(100);
+                            try
+                            {
+                                await Task.Delay(100, token);
+                            }
+                            catch (TaskCanceledException)
+                            {
+                                // Do Nothing
+                            }
                         }
                     }
                 });
@@ -121,6 +149,11 @@ namespace OpenTelmetry.Sdk
             foreach (var source in sources)
             {
                 source.AttachListener(listener);
+            }
+
+            foreach (var exporter in exporters)
+            {
+                exporter.Start(token);
             }
 
             isBuilt = true;
@@ -138,6 +171,11 @@ namespace OpenTelmetry.Sdk
             }
 
             collectTask.Wait();
+
+            foreach (var exporter in exporters)
+            {
+                exporter.Stop();
+            }
         }
 
         private List<Tuple<string,Type>> ExpandLabels(MeterBase meter, LabelSet labels)
@@ -150,7 +188,7 @@ namespace OpenTelmetry.Sdk
 
             // TODO: Find a more performant way to avoid string interpolation.  Maybe class for segmented string list.  Reuse Labelset?
 
-            var qualifiedName = ($"{type}/{ns}/{name}");
+            var qualifiedName = ($"{ns}/{type}/{name}");
 
             // Merge Bound and Ad-Hoc labels into one
 
@@ -299,14 +337,16 @@ namespace OpenTelmetry.Sdk
             return false;
         }
 
-        private void Collect()
+        private ExportItem[] Collect()
         {
-            List<string> exports = new();
+            List<ExportItem> ret = new();
 
-            Console.WriteLine("*** Collect...");
+            Console.WriteLine($"*** Collect {name}...");
 
             if (isBuilt)
             {
+                List<string> exports = new();
+
                 // Reset all aggregates!
                 var oldAggDict = Interlocked.Exchange(ref aggregateDict, new Dictionary<string, Aggregator>());
 
@@ -314,10 +354,10 @@ namespace OpenTelmetry.Sdk
                 {
                     StringBuilder sb = new StringBuilder();
 
-                    sb.AppendLine(kv.Key);
+                    sb.AppendLine($"{name}: {kv.Key}");
 
                     sb.Append($"    {kv.Value.GetType().Name}: ");
-                    
+
                     // TODO: Print out each specific type of Aggregation.
                     if (kv.Value is CountSumMinMax cnt)
                     {
@@ -337,12 +377,13 @@ namespace OpenTelmetry.Sdk
                 }
 
                 exports.Sort();
+                foreach (var item in exports)
+                {
+                    ret.Add(new StringExportItem(item));
+                }
             }
 
-            foreach (var line in exports)
-            {
-                Console.WriteLine(line);
-            }
+            return ret.ToArray();
         }
    }
 }
