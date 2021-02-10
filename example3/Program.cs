@@ -51,6 +51,18 @@ namespace example3
                 //.AddMetricExclusion("/queue_size/")
                 //.AddMetricInclusion("/_Total")
 
+                // Configure what Labels are important
+                .AggregateByLabels(typeof(CountSumMinMax), 
+                    new LabelSet(
+                        "LibraryInstanceName", "*" ),
+                    new LabelSet(
+                        "LibraryInstanceName", "*", 
+                        "Mode", "*" ),
+                    new LabelSet(
+                        "OperName", "*", 
+                        "Mode", "Batch" )
+                    )
+
                 // Finalize pipeline
                 .Build()
                 ;

@@ -24,6 +24,8 @@ namespace OpenTelmetry.Sdk
 
         private List<Tuple<string,string>> metricFilterList = new();
 
+        private List<(Type aggType, LabelSet[] labels)> aggregateByLabelSet = new();
+
         private Task collectTask;
         private Task dequeueTask;
 
@@ -64,6 +66,12 @@ namespace OpenTelmetry.Sdk
         public SampleSdk AddMetricExclusion(string term)
         {
             metricFilterList.Add(Tuple.Create("Exclude", term));
+            return this;
+        }
+
+        public SampleSdk AggregateByLabels(Type aggType, params LabelSet[] labelset)
+        {
+            aggregateByLabelSet.Add((aggType, labelset));
             return this;
         }
 
@@ -170,25 +178,65 @@ namespace OpenTelmetry.Sdk
                 hints[hintLabels[n]] = hintLabels[n+1];
             }
 
-            // TODO: Need to make this configurable for all kinds of Pre-Aggregates and Aggregation Types
             // Determine how to expand into different aggregates instances
 
             List<Tuple<string,Type>> label_aggregates = new();
 
             // TODO: Use Meter.Hints to determine how to expand labels...
-            var defaultAgg = hints.GetValueOrDefault("DefaultAggregator", "Sum");
-            var defaultAggType = 
-                defaultAgg == "Sum" ? typeof(CountSumMinMax)
-                : defaultAgg == "Histogram" ? typeof(LabelHistogram)
+            var defaultAggType = hints.GetValueOrDefault("DefaultAggregator", "Sum");
+            Type defaultAgg = 
+                defaultAggType == "Sum" ? typeof(CountSumMinMax)
+                : defaultAggType == "Histogram" ? typeof(LabelHistogram)
                 : typeof(CountSumMinMax);
 
             // Meter for total (dropping all labels)
-            label_aggregates.Add(Tuple.Create($"{qualifiedName}/_Total", defaultAggType));
+            label_aggregates.Add(Tuple.Create($"{qualifiedName}/{defaultAgg.Name}/_Total", defaultAgg));
 
-            // Meter for each 1D dimension
-            foreach (var kv in labelDict)
+            // Meter for each configured dimension
+            foreach (var aggSet in aggregateByLabelSet)
             {
-                label_aggregates.Add(Tuple.Create($"{qualifiedName}/{kv.Key}={kv.Value}", defaultAggType));
+                foreach (var ls in aggSet.labels)
+                {
+                    List<string> paths = new();
+
+                    foreach (var kv in ls.GetLabels())
+                    {
+                        var lskey = kv.Item1;
+                        var lsval = kv.Item2;
+
+                        if (labelDict.TryGetValue(lskey, out var val))
+                        {
+                            if (lsval == "*")
+                            {
+                                paths.Add($"{lskey}={val}");
+                            }
+                            else
+                            {
+                                var itemval = lsval.Split(",");
+                                if (itemval.Contains(val))
+                                {
+                                    paths.Add($"{lskey}={val}");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+
+                    if (paths.Count() > 0)
+                    {
+                        paths.Sort();
+                        var dim = String.Join("/", paths);
+                        label_aggregates.Add(Tuple.Create($"{qualifiedName}/{aggSet.aggType.Name}/{dim}", aggSet.aggType));
+                    }
+                }
+
+                if (aggSet.labels.Length == 0)
+                {
+                    label_aggregates.Add(Tuple.Create($"{qualifiedName}/{aggSet.aggType.Name}/_Total", aggSet.aggType));
+                }
             }
 
             // Apply inclusion/exclusion filters
@@ -253,6 +301,8 @@ namespace OpenTelmetry.Sdk
 
         private void Collect()
         {
+            List<string> exports = new();
+
             Console.WriteLine("*** Collect...");
 
             if (isBuilt)
@@ -260,30 +310,38 @@ namespace OpenTelmetry.Sdk
                 // Reset all aggregates!
                 var oldAggDict = Interlocked.Exchange(ref aggregateDict, new Dictionary<string, Aggregator>());
 
-                StringBuilder sb = new StringBuilder();
-
                 foreach (var kv in oldAggDict)
                 {
+                    StringBuilder sb = new StringBuilder();
+
                     sb.AppendLine(kv.Key);
 
+                    sb.Append($"    {kv.Value.GetType().Name}: ");
+                    
                     // TODO: Print out each specific type of Aggregation.
                     if (kv.Value is CountSumMinMax cnt)
                     {
-                        sb.AppendLine($"  CountSumMinMax: n={cnt.count}, sum={cnt.sum}, min={cnt.min}, max={cnt.max}");
+                        sb.AppendLine($"n={cnt.count}, sum={cnt.sum}, min={cnt.min}, max={cnt.max}");
                     }
                     else if (kv.Value is LabelHistogram hgm)
                     {
-                        sb.Append($"  LabelHistogram: ");
                         var details = String.Join(", ", hgm.bins.Select(x => $"{x.Key}={x.Value}"));
                         sb.AppendLine(details);
                     }
                     else
                     {
-                        sb.AppendLine($"  UNKNOWN");
+                        sb.AppendLine("-");
                     }
+
+                    exports.Add(sb.ToString());
                 }
 
-                Console.WriteLine(sb.ToString());
+                exports.Sort();
+            }
+
+            foreach (var line in exports)
+            {
+                Console.WriteLine(line);
             }
         }
    }

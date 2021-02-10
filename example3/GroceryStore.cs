@@ -68,14 +68,21 @@ namespace Example
             var pipeline = new SampleSdk()
                 .Name("OrderPipeline")
                 .AttachSource("StoreMetrics")
+                .AggregateByLabels(typeof(CountSumMinMax), 
+                    new LabelSet("Customer", "*"),
+                    new LabelSet("Item", "lemon,tomato"),
+                    new LabelSet("Customer", "CustomerA,CustomerC", "Item", "*"),
+                    new LabelSet("Store", "*", "Item", "*")
+                    )
+                .AggregateByLabels(typeof(LabelHistogram))
                 .Build();
 
 
             var store = new GroceryStore("Portland");
-            store.process_order("customerA", ("potato", 2), ("tomato", 3));
-            store.process_order("customerB", ("tomato", 10));
-            store.process_order("customerC", ("potato", 2));
-            store.process_order("customerA", ("tomato", 1));
+            store.process_order("CustomerA", ("potato", 2), ("tomato", 3));
+            store.process_order("CustomerB", ("tomato", 10));
+            store.process_order("CustomerC", ("potato", 2));
+            store.process_order("CustomerA", ("tomato", 1));
 
 
             // Shutdown Metric Pipeline
