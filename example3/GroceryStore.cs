@@ -49,7 +49,7 @@ namespace Example
 
             foreach (var item in items)
             {
-                total_price += price_list[item.name];
+                total_price += item.qty * price_list[item.name];
 
                 // Record Metric
                 item_counter.Add(item.qty, new LabelSet("Item", item.name, "Customer", customer));
@@ -83,31 +83,31 @@ namespace Example
         }
 
         /*
-            *** Collect...
-            Counter/StoreMetrics/item_counter/_Total
-            CountSumMinMax: n=5, sum=18, min=1, max=10
-            Counter/StoreMetrics/item_counter/Store=Portland
-            CountSumMinMax: n=5, sum=18, min=1, max=10
-            Counter/StoreMetrics/item_counter/Item=potato
-            CountSumMinMax: n=2, sum=4, min=2, max=2
-            Counter/StoreMetrics/item_counter/Customer=customerA
-            CountSumMinMax: n=3, sum=6, min=1, max=3
-            Counter/StoreMetrics/item_counter/Item=tomato
-            CountSumMinMax: n=3, sum=14, min=1, max=10
-            Counter/StoreMetrics/cash_counter/_Total
-            CountSumMinMax: n=4, sum=11.2, min=1.1, max=4.1
-            Counter/StoreMetrics/cash_counter/Store=Portland
-            CountSumMinMax: n=4, sum=11.2, min=1.1, max=4.1
-            Counter/StoreMetrics/cash_counter/Customer=customerA
-            CountSumMinMax: n=2, sum=7.1, min=3, max=4.1
-            Counter/StoreMetrics/item_counter/Customer=customerB
-            CountSumMinMax: n=1, sum=10, min=10, max=10
-            Counter/StoreMetrics/cash_counter/Customer=customerB
-            CountSumMinMax: n=1, sum=3, min=3, max=3
-            Counter/StoreMetrics/item_counter/Customer=customerC
-            CountSumMinMax: n=1, sum=2, min=2, max=2
-            Counter/StoreMetrics/cash_counter/Customer=customerC
-            CountSumMinMax: n=1, sum=1.1, min=1.1, max=1.1
+*** Collect...
+Counter/StoreMetrics/item_counter/_Total
+  CountSumMinMax: n=5, sum=18, min=1, max=10
+Counter/StoreMetrics/item_counter/Store=Portland
+  CountSumMinMax: n=5, sum=18, min=1, max=10
+Counter/StoreMetrics/item_counter/Item=potato
+  CountSumMinMax: n=2, sum=4, min=2, max=2
+Counter/StoreMetrics/item_counter/Customer=customerA
+  CountSumMinMax: n=3, sum=6, min=1, max=3
+Counter/StoreMetrics/item_counter/Item=tomato
+  CountSumMinMax: n=3, sum=14, min=1, max=10
+Counter/StoreMetrics/cash_counter/_Total
+  CountSumMinMax: n=4, sum=46.400000000000006, min=2.2, max=30
+Counter/StoreMetrics/cash_counter/Store=Portland
+  CountSumMinMax: n=4, sum=46.400000000000006, min=2.2, max=30
+Counter/StoreMetrics/cash_counter/Customer=customerA
+  CountSumMinMax: n=2, sum=14.2, min=3, max=11.2
+Counter/StoreMetrics/item_counter/Customer=customerB
+  CountSumMinMax: n=1, sum=10, min=10, max=10
+Counter/StoreMetrics/cash_counter/Customer=customerB
+  CountSumMinMax: n=1, sum=30, min=30, max=30
+Counter/StoreMetrics/item_counter/Customer=customerC
+  CountSumMinMax: n=1, sum=2, min=2, max=2
+Counter/StoreMetrics/cash_counter/Customer=customerC
+  CountSumMinMax: n=1, sum=2.2, min=2.2, max=2.2
         */
     }
 }
