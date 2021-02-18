@@ -233,25 +233,202 @@ Counter c = new Counter(source, "hats-sold");
 - This design pattern has been well established with .NET runtime.  (i.e. EventCounter, ETW, TraceProvider, etc...)
 - This is a potential argument for using a factory pattern. Should we fold this into that question?
 
+## Should we standardize that all dimension values are strings or do we need to allow a broader set of types?
 
-## Passing native numbers (int/doubles) versus boxing into a MetricValue class
+Early on the System.Diagnostics.Activity type used strings for its Tags property but OpenTelemetry wanted
+to support non-string types such as numbers, lists, maps, etc. We needed to create alternate APIs to
+allow users to pass in these other data types which made the API messier than it would have been if we
+had designed for this requirement up-front. Metric dimension values appear similar to tags so it is
+natural to wonder would we be making the same mistake if we defined them to be strings?
 
-### 02-04-2021
+Proposed answer: Yes, we should standardize dimension values as strings
 
-- API allows for native numbers as input parameters, but is BOXed into MetricValue before passing to SDK.
-  - Q: Boxing vs struct.  Performance?  Usability?  Maintainability?
-  - Options: Use Generics?
+Email discussion:
 
-- If using MetricValue, need to explore "union" struct/class (i.e. FieldOffsetAttribute)
+From: Sergii Lavrinenko <selavrin@microsoft.com>
 
-TODO - Research project: If we assume that all values start as one of int/long/float/double, then they get cast to
+Makes sense to me. I also propose to decide on maximum number of dimensions, size of dimension names and values. Very high volumes increase load to client and back end and makes it hard to consume as well (cluttered UI, queries are slow etc.).
+
+As a n example, from back-end side MDM currently supports 74 dimensions 1k characters each. Most users use 6-10 dimensions and max 100 characters. However, occasionally we see users trying to report 100+ dimensions and call stack as a string or full URL in the dimension value. I can collect more precise statistics about dimensions usage if interested.
+
+Sergii
+
+
+From: Noah Falk <noahfalk@microsoft.com>
+
+I think it is reasonable for us to limit dimension values to be strings only. The primary intent of dimensions is to allow joining for aggregation which means we want the equality operation to be both intuitive to developers and fast to compute. If the API lets a user accidentally specify response_code = (int)200 and elsewhere response_code = (string)"200" now the SDK has to decide are those dimensions joinable or distinct? If they are joinable then we have to determine what is the exact set of type conversions the equality operator needs to consider and we make it run slower. If they aren't joinable then users will probably be confused.
+
+Other metric libraries also appear to use strings so we'd be following precedent as well: prometheus-net/Collector.cs at 4dc0b83b280395bc114c5530fa9843a244804f9b · prometheus-net/prometheus-net (github.com)
+
+HTH,
+
+-Noah
+
+
+From: Tarek Mahmoud Sayed <Tarek.Mahmoud.Sayed@microsoft.com>
+
+Thanks Reiley,
+
+ 
+
+Is there any requirement for the dimensions (for example, does it need to be serialized)?
+
+ 
+
+my main concern is that if let’s say .NET 6 has metrics API that only allow string as dimension value, and in .NET 7 we need to support int/enum
+ 
+
+I would say we can have the API in 6.0 accept Object and restrict it to strings only. In the future we can start allowing any other types as needed. I think this would be better approach than introducing more APIs to support other types.
+
+ 
+
+Thanks,
+
+Tarek
+
+ 
+
+From: Reiley Yang <reyang@microsoft.com>
+
+(merging threads)
+
+ 
+
+@Tarek I was thinking about the following scenario:
+
+Library reports HTTP request latency, with HTTP status code as one of the dimensions. Application owner would want to know “what’s my P95 (95%) latency for all the succeeded HTTP requests” (e.g. HTTP 2xx status).
+A storage service reports READ operation metrics {storage account, blob size, latency}. Operator would want to know “what’s the maximum latency for blob < 1K, and what’s the maximum latency for blob < 100K.
+ 
+
+@Victor my main concern is that if let’s say .NET 6 has metrics API that only allow string as dimension value, and in .NET 7 we need to support int/enum – would that be simply adding some overload functions or we have to invent a different API. I will poke the owner of Prometheus and Micrometer to see what’s their thinking. @Sergii do you see a trend?
+
+ 
+
+Regards,
+
+Reiley
+
+
+From: Tarek Mahmoud Sayed Tarek.Mahmoud.Sayed@microsoft.com
+
+What would be the scenario/reason to support non-string types? Does using numbers solve any usage problem? Or it is just to allow flexibility?
+
+
+From: Victor Lu <victlu@microsoft.com>
+
+What’s your opinion on string vs. other types for dimension value?
+ 
+
+My simple answer, at this time, is to keep it a string, BUT…
+
+ 
+
+If your question is in scope of the DIMENSION VALUE. Then there are a bunch of considerations:
+
+The cardinality of the dimension value needs to be finite and minimized.  (At least from the backend systems I’ve experienced before).  Using an unbounded value can cause exponential growth in # of aggregates / time series the system needs to maintain.  This is true for strings as well.
+One example is HTTP Status Code of 200, 404, 500, etc.  These are not “int” values, but rather is a 1:1 mapping with a finite set of enumerable status code of OK, NOTFOUND, SERVERERROR.  Thus, it’s a finite set of discrete values, easily represented as a string.
+Also, we are not expected to do mathematical operations on the dimension value.  i.e. We don’t expect to add 200 with 404 for a render of 604.
+Depending on how the backend system is designed, it may be more prudent to pivot the int values to be part of the metric name instead.
+One example is “Bytes received” as a Dimension.  This is truly infinite and really does not belong as a dimension.  It should be reported as an independent metric itself.
+In some use cases, customer may find it convenient to “TAG” a reported metric with these dimensional values.  But I think that is an error and an educational opportunity.
+If the concern is memory usage and/or cpu time for processing.  It may make sense to store as a generic (i.e. DimValue<T>).  But the “value” should still be treated as discrete rather than numeric.  And some form of ToString() is still required for serialization.
+Remember also, current OTLP representation of exported data still has numerics serialized into string format on the wire.
+ 
+
+If the desire is to carry additional “State” info…  Or add extensibility…
+
+We should do so outside of the Dimension/Labels.  Maybe explicitly introduce a “userdata” field per metric.
+We should carry metadata as an object (or a subclass of a base class).  A Dictionary<string, BaseMetadata> semantic works well in this case.  Vendors can derived from BaseMetadata while maintaining strong typing.
+These states should be designed to stay in-process and for purpose of “extending” the pipeline.  If it leave our process-space, then, more concerns on serialization and deserialization comes into play!
+It is possible (and maybe even recommended?) for a vendor-specific implementation to render additional metrics or enrich labels (dimension name/value) based on known “states”.
+ 
+
+If we just allow Dimension Values to be any “object”.  It will likely encourage wrongful usage. As well as render the field opaque to stages in the pipeline.  This does not promote interoperability.
+
+ 
+
+Hopefully this makes sense as my words are likely not expressive enough.  ☹
+
+ 
+
+VL
+
+
+From: Reiley Yang <reyang@microsoft.com>
+
+Happy President Day!
+
+ 
+
+I don’t see anything super urgent. It would be great if @David @Noah @Tarek @Victor could comment on the highlighted part.
+...
+One thing I need feedback - what’s your opinion on string vs. other types for dimension value? https://github.com/open-telemetry/opentelemetry-specification/issues/1113#issuecomment-777881385
+Do you think .NET should only support string as metric dimension, or we allow more types (limited set of types, or any type)?
+My answer would be yes – I think we should support other types (e.g. int), so please call out if you think I’m going to a wrong direction.
+ 
+
+Regards，
+
+Reiley
+
+
+## Can we use double as our sole interchange type when communicating numeric measurements between instrumented code and SDK?
+
+When instrumented code initially calculates a measurement to be recorded it could have any integral type
+such as int, float, or long. This measurement then needs to be communicated through the API layer to the
+SDK as a method parameter, then stored by the SDK. Each step of this might need to convert the data type
+or provide different options for the data type. For simplicity sake it would be easiest to use just one
+interchange type in the API. Alternatives to using double only would be using a discriminated union type
+(MetricValue struct), using a generic type parameter, or defining multiple overloads that take different
+parameter types.
+
+Proposed answer: Yes, we can standardize on double as our interchange type for numeric measurements.
+
+Investigation:
+
+What do the other common metric libraries do here?
+
+Micrometer uses double in the API. Example: 
+ - https://github.com/micrometer-metrics/micrometer/blob/master/micrometer-core/src/main/java/io/micrometer/core/instrument/composite/CompositeDistributionSummary.java#L37
+
+Prometheus uses double in the API. Example: 
+ - https://github.com/prometheus-net/prometheus-net/blob/master/Prometheus.NetStandard/ICounter.cs#L5
+ - https://github.com/prometheus-net/prometheus-net/blob/master/Prometheus.NetStandard/Gauge.cs#L31
+
+OpenMetrics uses int or floating point on the wire format. Collection API MAY only support float64. Reference:
+ - https://github.com/OpenObservability/OpenMetrics/blob/master/specification/OpenMetrics.md#values
+
+If we assume that all values start as one of int/long/float/double, then they get cast to
 a double to cross the API->SDK interface, then the SDK casts them back to int/long/float/double what is the perf
 overhead of doing that and what rounding error occurs on the integer types?
 
-TODO - Research project: If the SDK had to implement an a listener pattern where the MeasurementRecorded function
-uses a generic T type parameter for the measured value, how easy/hard is that to implement?
+int and float can be perfectly represented by double, long in the range [-2^53, 2^53] can be perfectly represented,
+outside that range a long of magnitude <= 2^X will be rounded to the nearest increment of 2^(X-53). Alternately large
+long values casted to double have a margin of error of 0.00000000000001%. When visualized as an absolute value on a
+graph or compared to some alert threshold it seems extremely unlikely that such a small error would ever be meaningful.
+When used as a counter the difference between succesive measurements is used which would accentuate small errors, but it
+is still hard to envision how it would matter in any common case. Even a counter that recorded an increment every second 
+for 10 years would need to increment in value by more than 28M/sec to reach 2^53. This gives an error of 1 in 28M when
+displaying the rate.
 
-TODO - Research project: What do the other common metric libraries do here?
+My attempts to benchmark trivial Meters that require int->double, long->double, int->double->int and long->double->long
+conversions show that the overheads if they even exist, were neglible. Each iteration recorded 1000 measurements so it
+is ~13ns per measurement regardless of the data type conversions.
+
+|             Method |     Mean |    Error |   StdDev |
+|------------------- |---------:|---------:|---------:|
+|                Int | 12.98 us | 0.028 us | 0.026 us |
+|        IntToDouble | 13.06 us | 0.101 us | 0.095 us |
+|               Long | 13.11 us | 0.136 us | 0.106 us |
+|       LongToDouble | 13.11 us | 0.081 us | 0.072 us |
+|   IntToDoubleToInt | 12.97 us | 0.035 us | 0.029 us |
+| LongToDoubleToLong | 13.09 us | 0.091 us | 0.085 us |
+
+
+If the SDK had to implement an a listener pattern where the MeasurementRecorded function
+uses a generic T type parameter for the measured value, how easy/hard is that to implement?
+In my chat with Victor it sounded like it gets a little messy, but tractable if we needed to.
+
 
 
 ## LabelSet performance vs usability vs flexibility
