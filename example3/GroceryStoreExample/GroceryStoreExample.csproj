@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpenTelemetry.Metric.Api\OpenTelemetry.Metric.Api.csproj" />
+    <ProjectReference Include="..\OpenTelemetry.Metric.Sdk\OpenTelemetry.Metric.Sdk.csproj" />
+    <ProjectReference Include="..\Microsoft.Diagnostics.Metric\Microsoft.Diagnostics.Metric.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+</Project>

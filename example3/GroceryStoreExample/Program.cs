@@ -1,67 +1,10 @@
-using System;
-using System.Collections.Generic;
-using Microsoft.Diagnostics.Metric;
-using OpenTelmetry.Api;
-using OpenTelmetry.Sdk;
+﻿using System;
+using OpenTelemetry.Metric.Api;
+using OpenTelemetry.Metric.Sdk;
 
-namespace Example
+namespace GroceryStoreExample
 {
-    public class GroceryStore
-    {
-        private static Dictionary<string,double> price_list = new()
-        {
-            { "potato", 1.10 },
-            { "tomato", 3.00 },
-        };
-
-        private string store_name;
-
-        private Counter item_counter;
-        private Counter cash_counter;
-
-        public GroceryStore(string store_name)
-        {
-            this.store_name = store_name;
-
-            // Setup Metrics
-
-            var source = MetricSource.GetSource("StoreMetrics");
-
-            var store_labelset = new LabelSet("Store", store_name);
-
-            item_counter = source.CreateCounter("item_counter", store_labelset, 
-                new LabelSet(
-                    "Description", "Number of items sold",
-                    "Unit", "Count",
-                    "DefaultAggregator", "Sum"
-                    ));
-
-            cash_counter = source.CreateCounter("cash_counter", store_labelset,
-                new LabelSet(
-                    "Description", "Total available cash",
-                    "Unit", "USD",
-                    "DefaultAggregator", "Sum"
-                    ));
-        }
-
-        public void process_order(string customer, params (string name, int qty)[] items)
-        {
-            double total_price = 0;
-
-            foreach (var item in items)
-            {
-                total_price += item.qty * price_list[item.name];
-
-                // Record Metric
-                item_counter.Add(item.qty, new LabelSet("Item", item.name, "Customer", customer));
-            }
-
-            // Record Metric
-            cash_counter.Add(total_price, new LabelSet("Customer", customer));
-        }
-    }
-
-    public class Application
+    class Program
     {
         public static void Main(string[] args)
         {
@@ -100,8 +43,12 @@ namespace Example
             pipeline.Stop();
             pipeline2.Stop();
         }
+    }
+}
 
-        /*
+
+/*
+
 *** Collect...
 Counter/StoreMetrics/cash_counter/CountSumMinMax/_Total
     CountSumMinMax: n=4, sum=46.400000000000006, min=2.2, max=30
@@ -153,6 +100,6 @@ Counter/StoreMetrics/item_counter/CountSumMinMax/Item=tomato/Store=Portland
 
 Counter/StoreMetrics/item_counter/LabelHistogram/_Total
     LabelHistogram: _total=5, Store:Portland=5, Item:potato=2, Customer:CustomerA=3, Item:tomato=3, Customer:CustomerB=1, Customer:CustomerC=1
-        */
-    }
-}
+
+*/
+

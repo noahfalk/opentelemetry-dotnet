@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace OpenTelmetry.Sdk
+namespace OpenTelemetry.Metric.Sdk
 {
     /// <summary>
     /// MetricValue as a C# value type with Boxing allocation

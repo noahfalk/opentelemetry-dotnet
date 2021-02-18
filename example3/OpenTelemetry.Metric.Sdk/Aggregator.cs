@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using OpenTelmetry.Api;
-using OpenTelmetry.Sdk;
+using OpenTelemetry.Metric.Api;
+using OpenTelemetry.Metric.Sdk;
 
-namespace OpenTelmetry.Sdk
+namespace OpenTelemetry.Metric.Sdk
 {
     public abstract class Aggregator
     {

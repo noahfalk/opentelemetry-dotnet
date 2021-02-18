@@ -1,4 +1,4 @@
-namespace OpenTelmetry.Api
+namespace OpenTelemetry.Metric.Api
 {
     public static partial class MeterExtensions
     {

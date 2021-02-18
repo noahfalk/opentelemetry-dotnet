@@ -4,8 +4,8 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Engines;
 
-using OpenTelmetry.Api;
-using OpenTelmetry.Sdk;
+using OpenTelemetry.Metric.Api;
+using OpenTelemetry.Metric.Sdk;
 
 namespace MyBenchmark
 {

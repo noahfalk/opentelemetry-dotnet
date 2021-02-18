@@ -21,6 +21,32 @@
             "stopAtEntry": false
         },
         {
+            "name": "Grocery Store Example",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceRoot}/GroceryStoreExample/bin/Debug/net5.0/GroceryStoreExample.dll",
+            "args": [],
+            "cwd": "${workspaceRoot}",
+            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Example",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceRoot}/Example/bin/Debug/net5.0/Example.dll",
+            "args": [],
+            "cwd": "${workspaceRoot}",
+            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": ".NET Core Attach",
             "type": "coreclr",
             "request": "attach",

@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using Microsoft.Diagnostics.Metric;
 
-namespace OpenTelmetry.Api
+namespace OpenTelemetry.Metric.Api
 {
     public class Counter : MeterBase
     {

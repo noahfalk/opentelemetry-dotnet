@@ -5,7 +5,7 @@ using System.Threading;
 using System.Linq;
 using Microsoft.Diagnostics.Metric;
 
-namespace OpenTelmetry.Api
+namespace OpenTelemetry.Metric.Api
 {
     public abstract class MeterBase : MetricBase
     {

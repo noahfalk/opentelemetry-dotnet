@@ -68,7 +68,7 @@ namespace Microsoft.Diagnostics.Metric
             return true;
         }
 
-        internal bool ReportValue<T>(MetricBase meter, T value, MetricLabel labels)
+        public bool ReportValue<T>(MetricBase meter, T value, MetricLabel labels)
         {
             foreach (var listener in listeners)
             {
@@ -78,7 +78,7 @@ namespace Microsoft.Diagnostics.Metric
             return true;
         }
 
-        internal bool ReportValue<T>(IList<Tuple<MetricBase, T>> records, MetricLabel labels)
+        public bool ReportValue<T>(IList<Tuple<MetricBase, T>> records, MetricLabel labels)
         {
             foreach (var listener in listeners)
             {

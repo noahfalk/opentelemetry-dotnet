@@ -5,9 +5,9 @@ using System.Threading;
 using System.Text;
 using System.Linq;
 using Microsoft.Diagnostics.Metric;
-using OpenTelmetry.Api;
+using OpenTelemetry.Metric.Api;
 
-namespace OpenTelmetry.Sdk
+namespace OpenTelemetry.Metric.Sdk
 {
     public class SdkListener : MetricListener
     {

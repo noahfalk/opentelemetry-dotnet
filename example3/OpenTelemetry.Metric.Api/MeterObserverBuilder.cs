@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
 
-namespace OpenTelmetry.Api
+namespace OpenTelemetry.Metric.Api
 {
     public class MeterObserverBuilder
     {

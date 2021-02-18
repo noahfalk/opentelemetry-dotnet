@@ -3,31 +3,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using MyLibrary;
 using Microsoft.Diagnostics.Metric;
-using OpenTelmetry.Api;
-using OpenTelmetry.Sdk;
+using OpenTelemetry.Metric.Api;
+using OpenTelemetry.Metric.Sdk;
 
-namespace example3
+namespace Example
 {
     class Program
     {
         static async Task Main(string[] args)
         {
-            bool isBenchmark = false;
-
-            foreach (var arg in args)
-            {
-                if (arg == "-benchmark")
-                {
-                    isBenchmark = true;
-                }
-            }
-
-            if (isBenchmark)
-            {
-               MyBenchmark.Program.Run(args);
-               return;
-            }
-
             var pgm = new Program();
             await pgm.Run();
         }

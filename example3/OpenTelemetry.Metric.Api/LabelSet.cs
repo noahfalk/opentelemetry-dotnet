@@ -1,7 +1,7 @@
 using System;
 using Microsoft.Diagnostics.Metric;
 
-namespace OpenTelmetry.Api
+namespace OpenTelemetry.Metric.Api
 {
     public class LabelSet : MetricLabel
     {

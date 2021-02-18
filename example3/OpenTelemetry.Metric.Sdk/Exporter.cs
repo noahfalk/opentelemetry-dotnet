@@ -4,7 +4,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OpenTelmetry.Sdk
+namespace OpenTelemetry.Metric.Sdk
 {
     public abstract class Exporter
     {

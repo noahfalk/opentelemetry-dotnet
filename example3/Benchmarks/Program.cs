@@ -1,17 +1,15 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Engines;
-using BenchmarkDotNet.Reports;
-
-using OpenTelmetry.Api;
-using OpenTelmetry.Sdk;
 
 namespace MyBenchmark
 {
-    public class Program
+    class Program
     {
-        public static void Run(string[] args)
+        static void Main(string[] args)
         {
             foreach (var arg in args)
             {
