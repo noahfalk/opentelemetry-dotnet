@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MyLibrary;
+using Microsoft.Diagnostics.Metric;
 using OpenTelmetry.Api;
 using OpenTelmetry.Sdk;
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Linq;
+using Microsoft.Diagnostics.Metric;
 
 namespace OpenTelmetry.Api
 {
@@ -11,7 +12,7 @@ namespace OpenTelmetry.Api
     /// </summary>
     public class BatchMetricBuilder
     {
-        private List<Tuple<MeterBase, object>> batches = new();
+        private List<Tuple<MetricBase, object>> batches = new();
         private LabelSet labels;
 
         public BatchMetricBuilder(LabelSet labels)
@@ -19,7 +20,7 @@ namespace OpenTelmetry.Api
             this.labels = labels;
         }
 
-        public BatchMetricBuilder RecordMetric<T>(MeterBase meter, T value)
+        public BatchMetricBuilder RecordMetric<T>(MetricBase meter, T value)
         {
             batches.Add(Tuple.Create(meter, (object) value));
             return this;
@@ -38,10 +39,7 @@ namespace OpenTelmetry.Api
             {
                 if (group.batch.Count() > 0)
                 {
-                    foreach (var listener in group.source.GetListeners())
-                    {
-                        listener.OnRecord(group.batch.ToList(), labels);
-                    }
+                    group.source.ReportValue(group.batch.ToList(), labels);
                 }
             }
         }

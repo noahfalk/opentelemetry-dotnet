@@ -1,8 +1,9 @@
 using System;
+using Microsoft.Diagnostics.Metric;
 
 namespace OpenTelmetry.Api
 {
-    public class LabelSet
+    public class LabelSet : MetricLabel
     {
         static public readonly string[] empty_keyvalues = {};
         static public LabelSet Empty { get; } = new LabelSet();
@@ -23,20 +24,11 @@ namespace OpenTelmetry.Api
         }
 
         /// <summary>
-        /// Returns KeyValue pairs in a flatten string array. 
-        /// (i.e. [key1, value1, key2, value2, ... ])
-        /// </summary>
-        public virtual string[] GetKeyValues()
-        {
-            return keyvalues;
-        }
-
-        /// <summary>
         /// Return Array of Tuple&lt;Key,Value&gt;.
         /// </summary>
-        public Tuple<string,string>[] GetLabels()
+        public override (string name, string value)[] GetLabels()
         {
-            var ret = new Tuple<string,string>[keyvalues.Length/2];
+            var ret = new (string name, string value)[keyvalues.Length/2];
 
             int pos = 0;
             for (int n = 0; n < keyvalues.Length; n += 2)
@@ -44,7 +36,7 @@ namespace OpenTelmetry.Api
                 var key = keyvalues[n];
                 var val = keyvalues[n+1];
 
-                ret[pos++] = Tuple.Create(key,val);
+                ret[pos++] = (key, val);
             }
 
             return ret;

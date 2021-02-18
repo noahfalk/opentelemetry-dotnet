@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Text;
 using System.Linq;
+using Microsoft.Diagnostics.Metric;
 using OpenTelmetry.Api;
 
 namespace OpenTelmetry.Sdk
@@ -17,22 +18,30 @@ namespace OpenTelmetry.Sdk
             this.sdk = sdk;
         }
 
-        public override bool OnCreate(MeterBase meter, LabelSet labels)
+        public override bool OnCreate(MetricSource source, MetricBase meter, MetricLabel labels)
         {
             // This SDK can store additional state data per meter
-            meter.state = new ExtraSDKState();
+            if (meter is MeterBase otelMeter)
+            {
+                otelMeter.state = new ExtraSDKState();
+            }
 
             return true;
         }
 
-        public override bool OnRecord<T>(MeterBase meter, T value, LabelSet labels)
+        public override bool OnRecord<T>(MetricSource source, MetricBase meter, T value, MetricLabel labels)
         {
             var dt = DateTimeOffset.UtcNow;
 
-            return sdk.OnRecord(meter, dt, value, labels);
+            if (meter is MeterBase otelMeter && labels is LabelSet labelset)
+            {
+                return sdk.OnRecord(otelMeter, dt, value, labelset);
+            }
+
+            return false;
         }
 
-        public override bool OnRecord<T>(IList<Tuple<MeterBase, T>> records, LabelSet labels)
+        public override bool OnRecord<T>(MetricSource source, IList<Tuple<MetricBase, T>> records, MetricLabel labels)
         {
             var dt = DateTimeOffset.UtcNow;
 
@@ -40,9 +49,11 @@ namespace OpenTelmetry.Sdk
 
             foreach (var record in records)
             {
-                var meter = record.Item1;
-                var value = record.Item2;
-                sdk.OnRecord(meter, dt, value, labels);
+                if (record.Item1 is MeterBase otelMeter && labels is LabelSet labelset)
+                {
+                    var value = record.Item2;
+                    sdk.OnRecord(otelMeter, dt, value, labelset);
+                }
             }
 
             return true;

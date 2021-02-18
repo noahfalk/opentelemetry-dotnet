@@ -133,24 +133,21 @@ namespace MyBenchmark
         }
 
         [Benchmark]
-        public List<Tuple<string,string>> LabelSet_enum()
+        public List<(string,string)> LabelSet_enum()
         {
-            List<Tuple<string,string>> ret = new();
+            List<(string,string)> ret = new();
 
-            var ls = this.ls.GetKeyValues();
-            for (int n = 0; n < ls.Length; n += 2)
+            var ls = this.ls.GetLabels();
+            foreach (var label in ls)
             {
-                var key = ls[n];
-                var val = ls[n+1];
-
-                ret.Add(Tuple.Create(key,val));
+                ret.Add((label.name, label.value));
             }
 
             return ret;
         }
 
         [Benchmark]
-        public Tuple<string,string>[] LabelSet_enumArray()
+        public (string name, string value)[] LabelSet_enumArray()
         {
             return ls.GetLabels();
         }

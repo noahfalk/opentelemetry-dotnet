@@ -53,16 +53,16 @@ namespace OpenTelmetry.Sdk
         {
             var effectiveLabels = new Dictionary<string,string>();
 
-            var boundLabels = meter.Labels.GetKeyValues();
-            for (int n = 0; n < boundLabels.Length; n += 2)
+            var boundLabels = meter.Labels.GetLabels();
+            foreach (var label in boundLabels)
             {
-                effectiveLabels[boundLabels[n]] = boundLabels[n+1];
+                effectiveLabels[label.Item1] = label.Item2;
             }
 
-            var adhocLabels = labels.GetKeyValues();
-            for (int n = 0; n < adhocLabels.Length; n += 2)
+            var adhocLabels = labels.GetLabels();
+            foreach (var label in adhocLabels)
             {
-                effectiveLabels[adhocLabels[n]] = adhocLabels[n+1];
+                effectiveLabels[label.Item1] = label.Item2;
             }
 
             var keys = new List<string>() { "_total" };

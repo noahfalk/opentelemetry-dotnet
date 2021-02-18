@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
 
-namespace OpenTelmetry.Api
+namespace Microsoft.Diagnostics.Metric
 {
     public abstract class MetricListener
     {
         /// <summary>
         /// Let SDK know when new counters are being created
         /// </summary>
-        public abstract bool OnCreate(MeterBase counter, LabelSet labels);
+        public abstract bool OnCreate(MetricSource source, MetricBase counter, MetricLabel labels);
 
         // TODO: Represent int/double as a generic class so we don't need two OnRecord() function
         // TODO: Need discussion of carrying native number or BOX up the number into generic class
@@ -16,11 +16,11 @@ namespace OpenTelmetry.Api
         /// <summary>
         /// Let SDK know when new measures are recorded
         /// </summary>
-        public abstract bool OnRecord<T>(MeterBase meter, T value, LabelSet labels);
+        public abstract bool OnRecord<T>(MetricSource source, MetricBase meter, T value, MetricLabel labels);
 
         /// <summary>
         /// Allow multiple measurements to be recorded atomicly
         /// </summary>
-        public abstract bool OnRecord<T>(IList<Tuple<MeterBase, T>> records, LabelSet labels);
+        public abstract bool OnRecord<T>(MetricSource source, IList<Tuple<MetricBase, T>> records, MetricLabel labels);
     }
 }

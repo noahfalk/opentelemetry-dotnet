@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using Microsoft.Diagnostics.Metric;
 
 namespace OpenTelmetry.Api
 {
@@ -51,7 +52,7 @@ namespace OpenTelmetry.Api
         }
     }
 
-    public static partial class MetricSourceExtensions
+    public static partial class MeterExtensions
     {
         public static Guage CreateGuage(this MetricSource source, string name)
         {

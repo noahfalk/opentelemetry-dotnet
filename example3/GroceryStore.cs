@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.Diagnostics.Metric;
 using OpenTelmetry.Api;
 using OpenTelmetry.Sdk;
 

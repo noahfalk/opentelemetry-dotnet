@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Text;
 using System.Linq;
+using Microsoft.Diagnostics.Metric;
 using OpenTelmetry.Api;
 
 namespace OpenTelmetry.Sdk
@@ -148,7 +149,7 @@ namespace OpenTelmetry.Sdk
 
             foreach (var source in sources)
             {
-                source.AttachListener(listener);
+                source.AttachListener(listener, "OTel SDK");
             }
 
             foreach (var exporter in exporters)
@@ -167,7 +168,7 @@ namespace OpenTelmetry.Sdk
 
             foreach (var source in sources)
             {
-                source.DettachListener(listener);
+                source.DettachListener(listener, "OTel SDK");
             }
 
             collectTask.Wait();
@@ -180,7 +181,7 @@ namespace OpenTelmetry.Sdk
 
         private List<Tuple<string,Type>> ExpandLabels(MeterBase meter, LabelSet labels)
         {
-            var ns = meter.MetricNamespace;
+            var ns = meter.source.Name;
             var name = meter.MetricName;
             var type = meter.MetricType;
 
@@ -194,26 +195,26 @@ namespace OpenTelmetry.Sdk
 
             Dictionary<string,string> labelDict = new();
 
-            var boundLabels = meter.Labels.GetKeyValues();
-            for (int n = 0; n < boundLabels.Length; n += 2)
+            var boundLabels = meter.Labels.GetLabels();
+            foreach (var label in boundLabels)
             {
-                labelDict[boundLabels[n]] = boundLabels[n+1];
+                labelDict[label.name] = label.value;
             }
 
-            var adhocLabels = labels.GetKeyValues();
-            for (int n = 0; n < adhocLabels.Length; n += 2)
+            var adhocLabels = labels.GetLabels();
+            foreach (var label in adhocLabels)
             {
-                labelDict[adhocLabels[n]] = adhocLabels[n+1];
+                labelDict[label.name] = label.value;
             }
 
             // Get Hints
 
             Dictionary<string,string> hints = new();
 
-            var hintLabels = meter.Hints.GetKeyValues();
-            for (int n = 0; n < hintLabels.Length; n += 2)
+            var hintLabels = meter.Hints.GetLabels();
+            foreach (var label in hintLabels)
             {
-                hints[hintLabels[n]] = hintLabels[n+1];
+                hints[label.name] = label.value;
             }
 
             // Determine how to expand into different aggregates instances
