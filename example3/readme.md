@@ -11,6 +11,28 @@ Our goals are:
 - To maintain zero/minimal differences between OpenTelemetry specification and .NET runtime
 - To use this project as an informed starting base for discussion with wider OpenTelemetry community
 
+## Principles
+
+- .NET provides a way to pass datapoints (un-opinionated) in a Time Series.  With
+optional metadata / hints for downstream interpretation.
+
+- .NET may implement and deliver counters (derived from .NET MetricBase) with it's
+own Semantic. (i.e. Counter with Add(), ElapsedDuration as a IDisposable, etc...)
+
+- OTel may implement and deliver counters (derived from .NET MetricBase) with it's
+own Semantic. (i.e. UpCounter with Inc(), ValueRecorder with Record(), etc...)
+
+- MetricBase will report datapoints into the .NET MetricSource interface
+(EventSource/EventListener model).  OTel SDK will attached as a MetricListeners.
+
+- SDKs will be opinionated!  Thus, datapoints will be interpreted based
+on it's counter "type" for aggregators, processors, exporters, etc...
+
+  - For unknown "type", it is treated as a pass-thru / standard Time Series
+  (i.e. as Gauge)
+
+- Exporters will need to "normalize" datapoints into "un-opinionated" OTLP
+
 # Topics
 
 ## What should 'Instrument' concepts be named?
@@ -489,22 +511,24 @@ Given pass experiences, handling and management of LabelSet will be a hot topic 
 ## Recording a measurement with constant time/space
 
 ### Problem Statement
-When a measurement is recorded, the calculation/accumulation/aggregation is process synchronouosly per call.
-Thus, the timing for each recording can vary based on how the SDK is configured.  It may be desireable to have a constant
+When a measurement is recorded, the calculation/accumulation/aggregation is
+process synchronouosly per call. Thus, the timing for each recording can vary
+based on how the SDK is configured.  It may be desireable to have a constant
 time/space per recording.
 
 ### Proposal
-Decouple the recording of measurments from the calculation/accumulation/aggregation of these measurements.
-One approach is to put a Queue between the concerns.  Recorded measurements are enqueued at constant time/space.
-A concurrent thread/task can dequeue measurements and do appropriate calculations and processing.
+Decouple the recording of measurments from the calculation/accumulation/aggregation
+of these measurements. One approach is to put a Queue between the concerns.
+Recorded measurements are enqueued at constant time/space. A concurrent thread/task
+can dequeue measurements and do appropriate calculations and processing.
 
-Does everyone agree that this is an SDK implementation concern rather than an API concern? I propose we segregate our design
-questions into three categories:
+Does everyone agree that this is an SDK implementation concern rather than an
+API concern? I propose we segregate our design questions into three categories:
+
 1. .NET API
 2. .NET implementation
 3. SDK implementation
 
-I would then prioritize resolving the issues in that order, with the caveat that we may want to make an API choice
-based on the result of resolving particular implementation questions.
-
-
+I would then prioritize resolving the issues in that order, with the caveat that
+we may want to make an API choice based on the result of resolving particular
+implementation questions.
