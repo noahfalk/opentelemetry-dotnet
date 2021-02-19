@@ -12,11 +12,11 @@ namespace GroceryStoreExample
             var pipeline = new SampleSdk()
                 .Name("OrderPipeline1")
                 .AttachSource("StoreMetrics")
-                .AggregateByLabels(typeof(CountSumMinMax), 
-                    new LabelSet("Customer", "*"),
-                    new LabelSet("Item", "lemon,tomato"),
-                    new LabelSet("Customer", "CustomerA,CustomerC", "Item", "*"),
-                    new LabelSet("Store", "*", "Item", "*")
+                .AggregateByLabels(typeof(SumCountMinMax), 
+                    new LabelSet(("Customer", "*")),
+                    new LabelSet(("Item", "lemon,tomato")),
+                    new LabelSet(("Customer", "CustomerA,CustomerC"), ("Item", "*")),
+                    new LabelSet(("Store", "*"), ("Item", "*"))
                     )
                 .AggregateByLabels(typeof(LabelHistogram))
                 .AddExporter(new ConsoleExporter("export1", 6000))

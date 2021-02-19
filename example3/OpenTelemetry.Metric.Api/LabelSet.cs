@@ -5,22 +5,17 @@ namespace OpenTelemetry.Metric.Api
 {
     public class LabelSet : MetricLabel
     {
-        static public readonly string[] empty_keyvalues = {};
-        static public LabelSet Empty { get; } = new LabelSet();
-        
-        private string[] keyvalues;
+        private (string name, string value)[] labels = {};
+
+        public static LabelSet Empty = new LabelSet();
 
         public LabelSet()
         {
-            keyvalues = empty_keyvalues;
         }
 
-        /// <summary>
-        /// i.e. new LabelSet(key1, value1, key2, value2, ...)
-        /// </summary>
-        public LabelSet(params string[] values)
+        public LabelSet(params (string name, string value)[] labels)
         {
-            keyvalues = values;
+            this.labels = labels;
         }
 
         /// <summary>
@@ -28,20 +23,8 @@ namespace OpenTelemetry.Metric.Api
         /// </summary>
         public override (string name, string value)[] GetLabels()
         {
-            var ret = new (string name, string value)[keyvalues.Length/2];
-
-            int pos = 0;
-            for (int n = 0; n < keyvalues.Length; n += 2)
-            {
-                var key = keyvalues[n];
-                var val = keyvalues[n+1];
-
-                ret[pos++] = (key, val);
-            }
-
-            return ret;
+            return labels;
         }
-
     }
 
     public class LabelSetSplit

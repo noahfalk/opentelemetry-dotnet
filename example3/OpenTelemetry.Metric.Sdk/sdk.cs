@@ -224,9 +224,9 @@ namespace OpenTelemetry.Metric.Sdk
             // TODO: Use Meter.Hints to determine how to expand labels...
             var defaultAggType = hints.GetValueOrDefault("DefaultAggregator", "Sum");
             Type defaultAgg = 
-                defaultAggType == "Sum" ? typeof(CountSumMinMax)
+                defaultAggType == "Sum" ? typeof(SumCountMinMax)
                 : defaultAggType == "Histogram" ? typeof(LabelHistogram)
-                : typeof(CountSumMinMax);
+                : typeof(SumCountMinMax);
 
             // Meter for total (dropping all labels)
             label_aggregates.Add(Tuple.Create($"{qualifiedName}/{defaultAgg.Name}/_Total", defaultAgg));
@@ -360,7 +360,7 @@ namespace OpenTelemetry.Metric.Sdk
                     sb.Append($"    {kv.Value.GetType().Name}: ");
 
                     // TODO: Print out each specific type of Aggregation.
-                    if (kv.Value is CountSumMinMax cnt)
+                    if (kv.Value is SumCountMinMax cnt)
                     {
                         sb.AppendLine($"n={cnt.count}, sum={cnt.sum}, min={cnt.min}, max={cnt.max}");
                     }

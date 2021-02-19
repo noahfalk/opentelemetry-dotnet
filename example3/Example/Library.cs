@@ -17,8 +17,8 @@ namespace MyLibrary
         public Library(string name, CancellationToken token)
         {
             var labels = new LabelSet(
-                "Program", "Test",
-                "LibraryInstanceName", name);
+                ("Program", "Test"),
+                ("LibraryInstanceName", name));
 
             // Create in Default source
 
@@ -26,8 +26,8 @@ namespace MyLibrary
 
             guage_qsize = new Guage(MetricSource.DefaultSource, "queue_size", LabelSet.Empty, 
                 new LabelSet(
-                    "Description", "A measure of Queue size",
-                    "DefaultAggregator", "Histogram")
+                    ("Description", "A measure of Queue size"),
+                    ("DefaultAggregator", "Histogram"))
                 );
 
             counter_request3 = new Counter("request3");
@@ -36,8 +36,8 @@ namespace MyLibrary
             counter_request3.SetObserver((m) => {
                 int val = count;
                 var labels = new LabelSet(
-                    "LibraryInstanceName", name,
-                    "Mode", "Observer");
+                    ("LibraryInstanceName", name),
+                    ("Mode", "Observer"));
                 return Tuple.Create((object)val, labels);
             });
 
@@ -63,7 +63,7 @@ namespace MyLibrary
 
             var opernum = count % 3;
 
-            var labels = new LabelSet("OperNum", $"{opernum}");
+            var labels = new LabelSet(("OperNum", $"{opernum}"));
 
             counter_request2.Add(1);
 
@@ -74,8 +74,8 @@ namespace MyLibrary
             // Example of recording a batch of measurements
 
             var labels2 = new LabelSet(
-                "OperNum", $"{opernum}",
-                "Mode", "Batch");
+                ("OperNum", $"{opernum}"),
+                ("Mode", "Batch"));
 
             new BatchMetricBuilder(labels2)
                 .RecordMetric(counter_request, 1.0)

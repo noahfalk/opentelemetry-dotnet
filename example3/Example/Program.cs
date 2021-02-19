@@ -37,16 +37,15 @@ namespace Example
                 //.AddMetricInclusion("/_Total")
 
                 // Configure what Labels are important
-                .AggregateByLabels(typeof(CountSumMinMax), 
+                .AggregateByLabels(typeof(SumCountMinMax), 
                     new LabelSet(
-                        "LibraryInstanceName", "*" ),
+                        ("LibraryInstanceName", "*")),
                     new LabelSet(
-                        "LibraryInstanceName", "*", 
-                        "Mode", "*" ),
+                        ("LibraryInstanceName", "*"), 
+                        ("Mode", "*")),
                     new LabelSet(
-                        "OperName", "*", 
-                        "Mode", "Batch" )
-                    )
+                        ("OperName", "*"), 
+                        ("Mode", "Batch")))
 
                 .AddExporter(new ConsoleExporter("export1", 6000))
 

@@ -10,7 +10,7 @@ namespace OpenTelemetry.Metric.Sdk
         public abstract void Update<T>(MeterBase meter, T num, LabelSet labels);
     }
 
-    public class CountSumMinMax : Aggregator
+    public class SumCountMinMax : Aggregator
     {
         public int count = 0;
         public double sum = 0;

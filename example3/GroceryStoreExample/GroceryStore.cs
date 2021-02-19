@@ -27,20 +27,20 @@ namespace GroceryStoreExample
 
             var source = MetricSource.GetSource("StoreMetrics");
 
-            var store_labelset = new LabelSet("Store", store_name);
+            var store_labelset = new LabelSet(("Store", store_name));
 
             item_counter = source.CreateCounter("item_counter", store_labelset, 
                 new LabelSet(
-                    "Description", "Number of items sold",
-                    "Unit", "Count",
-                    "DefaultAggregator", "Sum"
+                    ("Description", "Number of items sold"),
+                    ("Unit", "Count"),
+                    ("DefaultAggregator", "Sum")
                     ));
 
             cash_counter = source.CreateCounter("cash_counter", store_labelset,
                 new LabelSet(
-                    "Description", "Total available cash",
-                    "Unit", "USD",
-                    "DefaultAggregator", "Sum"
+                    ("Description", "Total available cash"),
+                    ("Unit", "USD"),
+                    ("DefaultAggregator", "Sum")
                     ));
         }
 
@@ -53,11 +53,11 @@ namespace GroceryStoreExample
                 total_price += item.qty * price_list[item.name];
 
                 // Record Metric
-                item_counter.Add(item.qty, new LabelSet("Item", item.name, "Customer", customer));
+                item_counter.Add(item.qty, new LabelSet(("Item", item.name), ("Customer", customer)));
             }
 
             // Record Metric
-            cash_counter.Add(total_price, new LabelSet("Customer", customer));
+            cash_counter.Add(total_price, new LabelSet(("Customer", customer)));
         }
     }
 }

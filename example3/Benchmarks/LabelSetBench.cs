@@ -44,15 +44,15 @@ namespace MyBenchmark
         public void Setup()
         {
             ls = new LabelSet(
-                "Key1", "Value1",
-                "Key2", "Value2",
-                "Key3", "Value3",
-                "Key4", "Value4",
-                "Key5", "Value5",
-                "Key6", "Value6",
-                "Key7", "Value7",
-                "Key8", "Value8",
-                "Key9", "Value9"
+                ("Key1", "Value1"),
+                ("Key2", "Value2"),
+                ("Key3", "Value3"),
+                ("Key4", "Value4"),
+                ("Key5", "Value5"),
+                ("Key6", "Value6"),
+                ("Key7", "Value7"),
+                ("Key8", "Value8"),
+                ("Key9", "Value9")
                 );
 
             dict = new Dictionary<string,string> {
@@ -64,7 +64,7 @@ namespace MyBenchmark
                 { "Key6", "Value6" },
                 { "Key7", "Value7" },
                 { "Key8", "Value8" },
-                { "Key9", "Value9" }
+                { "Key9", "Value9" },
             };
 
             split = new LabelSetSplit(
@@ -120,15 +120,15 @@ namespace MyBenchmark
         public LabelSet LabelSet_new()
         {
             return new LabelSet(
-                "Key1", "Value1",
-                "Key2", "Value2",
-                "Key3", "Value3",
-                "Key4", "Value4",
-                "Key5", "Value5",
-                "Key6", "Value6",
-                "Key7", "Value7",
-                "Key8", "Value8",
-                "Key9", "Value9"
+                ("Key1", "Value1"),
+                ("Key2", "Value2"),
+                ("Key3", "Value3"),
+                ("Key4", "Value4"),
+                ("Key5", "Value5"),
+                ("Key6", "Value6"),
+                ("Key7", "Value7"),
+                ("Key8", "Value8"),
+                ("Key9", "Value9")
                 );
         }
 
