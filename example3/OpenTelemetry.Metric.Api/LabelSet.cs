@@ -13,6 +13,11 @@ namespace OpenTelemetry.Metric.Api
         {
         }
 
+        public LabelSet(MetricLabel label)
+        {
+            this.labels = label.GetLabels();
+        }
+
         public LabelSet(params (string name, string value)[] labels)
         {
             this.labels = labels;

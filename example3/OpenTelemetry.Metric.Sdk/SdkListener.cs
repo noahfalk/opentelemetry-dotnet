@@ -37,6 +37,13 @@ namespace OpenTelemetry.Metric.Sdk
             {
                 return sdk.OnRecord(otelMeter, dt, value, labelset);
             }
+            else
+            {
+                // Convert to Gauge
+                // TODO: Need to make more performant!
+                var otelMeter2 = new Guage(meter.source, meter.MetricName, new LabelSet(meter.Labels));
+                return sdk.OnRecord(otelMeter2, dt, value, new LabelSet(labels));
+            }
 
             return false;
         }
@@ -53,6 +60,15 @@ namespace OpenTelemetry.Metric.Sdk
                 {
                     var value = record.Item2;
                     sdk.OnRecord(otelMeter, dt, value, labelset);
+                }
+                else
+                {
+                    var meter = record.Item1;
+                    var value = record.Item2;
+
+                    // Convert to Gauge
+                    var otelMeter2 = new Guage(meter.source, meter.MetricName, new LabelSet(meter.Labels));
+                    sdk.OnRecord(otelMeter2, dt, value, new LabelSet(labels));
                 }
             }
 

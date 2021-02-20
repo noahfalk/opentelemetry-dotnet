@@ -78,10 +78,21 @@ namespace Example
 
             Task t2 = Task.Run(async () => {
                 var lib = new Library("Library_2", token);
+
                 while (!token.IsCancellationRequested)
                 {
                     lib.DoOperation();
                     await Task.Delay(200);
+                }
+            });
+
+            Task t3 = Task.Run(async () => {
+                var rate = new RateCounter(MetricSource.DefaultSource, "RateCounter", 1, MetricLabel.DefaultLabel);
+
+                while (!token.IsCancellationRequested)
+                {
+                    rate.Mark();
+                    await Task.Delay(50);
                 }
             });
 
@@ -90,6 +101,7 @@ namespace Example
 
             await t1;
             await t2;
+            await t3;
         }
     }
 }
