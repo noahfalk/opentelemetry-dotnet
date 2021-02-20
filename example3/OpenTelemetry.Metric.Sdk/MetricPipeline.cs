@@ -10,13 +10,12 @@ using OpenTelemetry.Metric.Api;
 
 namespace OpenTelemetry.Metric.Sdk
 {
-    public class SampleSdk
+    public class MetricPipeline
     {
         private readonly object lockMeters = new();
         private List<MeterBase> meters = new();
 
-        private readonly object lockAggregateDict = new();
-        private Dictionary<string, Aggregator> aggregateDict = new();
+        private ConcurrentDictionary<string, AggregatorState> aggregateDict = new();
 
         private string name;
         private int collectPeriod_ms = 2000;
@@ -25,7 +24,7 @@ namespace OpenTelemetry.Metric.Sdk
 
         private List<Tuple<string,string>> metricFilterList = new();
 
-        private List<(Type aggType, LabelSet[] labels)> aggregateByLabelSet = new();
+        private List<(Aggregator agg, LabelSet[] labels)> aggregateByLabelSet = new();
 
         private List<Exporter> exporters = new();
 
@@ -39,7 +38,7 @@ namespace OpenTelemetry.Metric.Sdk
         private ConcurrentQueue<Tuple<MeterBase,DateTimeOffset,object,LabelSet>> incomingQueue = new();
         private bool useQueue = false;
 
-        public SampleSdk Name(string name)
+        public MetricPipeline Name(string name)
         {
             this.name = name;
             this.listener = new SdkListener(this);
@@ -47,56 +46,56 @@ namespace OpenTelemetry.Metric.Sdk
             return this;
         }
 
-        public SampleSdk AttachSource(MetricSource source)
+        public MetricPipeline AttachSource(MetricSource source)
         {
             sources.Add(source);
             return this;
         }
 
-        public SampleSdk AttachSource(string ns)
+        public MetricPipeline AttachSource(string ns)
         {
             var source = MetricSource.GetSource(ns);
             sources.Add(source);
             return this;
         }
 
-        public SampleSdk AddMetricInclusion(string term)
+        public MetricPipeline AddMetricInclusion(string term)
         {
             metricFilterList.Add(Tuple.Create("Include", term));
             return this;
         }
 
-        public SampleSdk AddMetricExclusion(string term)
+        public MetricPipeline AddMetricExclusion(string term)
         {
             metricFilterList.Add(Tuple.Create("Exclude", term));
             return this;
         }
 
-        public SampleSdk AggregateByLabels(Type aggType, params LabelSet[] labelset)
+        public MetricPipeline AggregateByLabels(Aggregator agg, params LabelSet[] labelset)
         {
-            aggregateByLabelSet.Add((aggType, labelset));
+            aggregateByLabelSet.Add((agg, labelset));
             return this;
         }
 
-        public SampleSdk AddExporter(Exporter exporter)
+        public MetricPipeline AddExporter(Exporter exporter)
         {
             exporters.Add(exporter);
             return this;
         }
 
-        public SampleSdk SetCollectionPeriod(int milliseconds)
+        public MetricPipeline SetCollectionPeriod(int milliseconds)
         {
             collectPeriod_ms = milliseconds;
             return this;
         }
 
-        public SampleSdk UseQueue()
+        public MetricPipeline UseQueue()
         {
             useQueue = true;
             return this;
         }
 
-        public SampleSdk Build()
+        public MetricPipeline Build()
         {
             // Start Periodic Collection Task
 
@@ -179,7 +178,7 @@ namespace OpenTelemetry.Metric.Sdk
             }
         }
 
-        private List<Tuple<string,Type>> ExpandLabels(MeterBase meter, LabelSet labels)
+        private List<(string labelKey, Aggregator agg)> ExpandLabels(MeterBase meter, LabelSet labels)
         {
             var ns = meter.source.Name;
             var name = meter.MetricName;
@@ -219,21 +218,25 @@ namespace OpenTelemetry.Metric.Sdk
 
             // Determine how to expand into different aggregates instances
 
-            List<Tuple<string,Type>> label_aggregates = new();
+            List<(string labelKey, Aggregator aggregator)> label_aggregates = new();
 
             // TODO: Use Meter.Hints to determine how to expand labels...
             var defaultAggType = hints.GetValueOrDefault("DefaultAggregator", "Sum");
-            Type defaultAgg = 
-                defaultAggType == "Sum" ? typeof(SumCountMinMax)
-                : defaultAggType == "Histogram" ? typeof(LabelHistogram)
-                : typeof(SumCountMinMax);
+            Aggregator defaultAgg = 
+                defaultAggType == "Sum" ? new SumCountMinMax()
+                : defaultAggType == "Histogram" ? new LabelHistogram()
+                : new SumCountMinMax();
+            var defaultAggName = defaultAgg.GetType().Name;
 
             // Meter for total (dropping all labels)
-            label_aggregates.Add(Tuple.Create($"{qualifiedName}/{defaultAgg.Name}/_Total", defaultAgg));
+            label_aggregates.Add(($"{qualifiedName}/{defaultAggName}/_Total", defaultAgg));
 
             // Meter for each configured dimension
             foreach (var aggSet in aggregateByLabelSet)
             {
+                var aggName = aggSet.agg.GetType().Name;
+                var agg = aggSet.agg;
+
                 foreach (var ls in aggSet.labels)
                 {
                     List<string> paths = new();
@@ -268,13 +271,13 @@ namespace OpenTelemetry.Metric.Sdk
                     {
                         paths.Sort();
                         var dim = String.Join("/", paths);
-                        label_aggregates.Add(Tuple.Create($"{qualifiedName}/{aggSet.aggType.Name}/{dim}", aggSet.aggType));
+                        label_aggregates.Add(($"{qualifiedName}/{aggName}/{dim}", agg));
                     }
                 }
 
                 if (aggSet.labels.Length == 0)
                 {
-                    label_aggregates.Add(Tuple.Create($"{qualifiedName}/{aggSet.aggType.Name}/_Total", aggSet.aggType));
+                    label_aggregates.Add(($"{qualifiedName}/{aggName}/_Total", agg));
                 }
             }
 
@@ -314,22 +317,16 @@ namespace OpenTelemetry.Metric.Sdk
                 // Expand out all the aggregates we need to update based on this measurement
                 var label_aggregates = ExpandLabels(meter, labels);
 
-                lock (lockAggregateDict)
+                foreach (var kv in label_aggregates)
                 {
-                    foreach (var tup in label_aggregates)
+                    AggregatorState aggState;
+                    if (!aggregateDict.TryGetValue(kv.labelKey, out aggState))
                     {
-                        var key = tup.Item1;
-                        var type = tup.Item2;
-
-                        Aggregator aggdata;
-                        if (!aggregateDict.TryGetValue(key, out aggdata))
-                        {
-                            aggdata = (Aggregator) Activator.CreateInstance(type);
-                            aggregateDict[key] = aggdata;
-                        }
-
-                        aggdata.Update(meter, value, labels);
+                        aggState = kv.agg.CreateState();
+                        aggregateDict[kv.labelKey] = aggState;
                     }
+
+                    aggState.Update(meter, value, labels);
                 }
 
                 return true;
@@ -348,10 +345,10 @@ namespace OpenTelemetry.Metric.Sdk
             {
                 List<string> exports = new();
 
-                // Reset all aggregates!
-                var oldAggDict = Interlocked.Exchange(ref aggregateDict, new Dictionary<string, Aggregator>());
+                // Reset all aggregate states!
+                var oldAggStates = Interlocked.Exchange(ref aggregateDict, new ConcurrentDictionary<string, AggregatorState>());
 
-                foreach (var kv in oldAggDict)
+                foreach (var kv in oldAggStates)
                 {
                     StringBuilder sb = new StringBuilder();
 
@@ -359,20 +356,9 @@ namespace OpenTelemetry.Metric.Sdk
 
                     sb.Append($"    {kv.Value.GetType().Name}: ");
 
-                    // TODO: Print out each specific type of Aggregation.
-                    if (kv.Value is SumCountMinMax cnt)
-                    {
-                        sb.AppendLine($"n={cnt.count}, sum={cnt.sum}, min={cnt.min}, max={cnt.max}");
-                    }
-                    else if (kv.Value is LabelHistogram hgm)
-                    {
-                        var details = String.Join(", ", hgm.bins.Select(x => $"{x.Key}={x.Value}"));
-                        sb.AppendLine(details);
-                    }
-                    else
-                    {
-                        sb.AppendLine("-");
-                    }
+                    var data = kv.Value.Serialize();
+                    var details = String.Join(", ", data.Select(x => $"{x.key}={x.value}"));
+                    sb.AppendLine(details);
 
                     exports.Add(sb.ToString());
                 }

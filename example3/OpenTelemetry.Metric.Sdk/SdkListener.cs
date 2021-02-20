@@ -11,9 +11,9 @@ namespace OpenTelemetry.Metric.Sdk
 {
     public class SdkListener : MetricListener
     {
-        SampleSdk sdk;
+        MetricPipeline sdk;
 
-        public SdkListener(SampleSdk sdk)
+        public SdkListener(MetricPipeline sdk)
         {
             this.sdk = sdk;
         }

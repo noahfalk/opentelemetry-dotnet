@@ -9,24 +9,24 @@ namespace GroceryStoreExample
         public static void Main(string[] args)
         {
             // Create Metric Pipeline
-            var pipeline = new SampleSdk()
+            var pipeline = new MetricPipeline()
                 .Name("OrderPipeline1")
                 .AttachSource("StoreMetrics")
-                .AggregateByLabels(typeof(SumCountMinMax), 
+                .AggregateByLabels(new SumCountMinMax(), 
                     new LabelSet(("Customer", "*")),
                     new LabelSet(("Item", "lemon,tomato")),
                     new LabelSet(("Customer", "CustomerA,CustomerC"), ("Item", "*")),
                     new LabelSet(("Store", "*"), ("Item", "*"))
                     )
-                .AggregateByLabels(typeof(LabelHistogram))
+                .AggregateByLabels(new LabelHistogram())
                 .AddExporter(new ConsoleExporter("export1", 6000))
                 .Build();
 
-            var pipeline2 = new SampleSdk()
+            var pipeline2 = new MetricPipeline()
                 .Name("OrderPipeline2")
                 .AttachSource("StoreMetrics")
                 .SetCollectionPeriod(6000)
-                .AggregateByLabels(typeof(LabelHistogram))
+                .AggregateByLabels(new LabelHistogram())
                 .AddExporter(new ConsoleExporter("export2", 1000))
                 .AddExporter(new ConsoleExporter("export3", 6000))
                 .Build();

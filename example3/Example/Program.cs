@@ -20,7 +20,7 @@ namespace Example
         {
             // Example of setting up a SDK
 
-            var sdk = new SampleSdk()
+            var sdk = new MetricPipeline()
                 .Name("MyProgram")
                 .SetCollectionPeriod(4000)
 
@@ -37,7 +37,7 @@ namespace Example
                 //.AddMetricInclusion("/_Total")
 
                 // Configure what Labels are important
-                .AggregateByLabels(typeof(SumCountMinMax), 
+                .AggregateByLabels(new SumCountMinMax(), 
                     new LabelSet(
                         ("LibraryInstanceName", "*")),
                     new LabelSet(
