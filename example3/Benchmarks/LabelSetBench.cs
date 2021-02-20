@@ -18,21 +18,22 @@ namespace MyBenchmark
             Intel Core i7-1065G7 CPU 1.30GHz, 1 CPU, 8 logical and 4 physical cores
             .NET Core SDK=5.0.102
             [Host]     : .NET Core 5.0.2 (CoreCLR 5.0.220.61120, CoreFX 5.0.220.61120), X64 RyuJIT
-            Job-JZPJLR : .NET Core 5.0.2 (CoreCLR 5.0.220.61120, CoreFX 5.0.220.61120), X64 RyuJIT
+            Job-UEMYAQ : .NET Core 5.0.2 (CoreCLR 5.0.220.61120, CoreFX 5.0.220.61120), X64 RyuJIT
 
             IterationCount=10  LaunchCount=2  WarmupCount=2
 
-            |              Method |      Mean |     Error |    StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-            |-------------------- |----------:|----------:|----------:|-------:|------:|------:|----------:|
-            |            Dict_new | 241.47 ns |  9.149 ns | 10.536 ns | 0.2370 |     - |     - |     992 B |
-            |           Dict_enum | 259.07 ns |  9.806 ns | 10.493 ns | 0.1602 |     - |     - |     672 B |
-            |        LabelSet_new |  45.50 ns |  1.592 ns |  1.833 ns | 0.0459 |     - |     - |     192 B |
-            |       LabelSet_enum | 138.39 ns | 11.407 ns | 13.136 ns | 0.1471 |     - |     - |     616 B |
-            |  LabelSet_enumArray |  71.80 ns |  3.313 ns |  3.815 ns | 0.0918 |     - |     - |     384 B |
-            |  LabelSetSplit_new1 |  81.20 ns |  2.399 ns |  2.763 ns | 0.0937 |     - |     - |     392 B |
-            |  LabelSetSplit_new2 |  54.32 ns |  3.598 ns |  4.144 ns | 0.0535 |     - |     - |     224 B |
-            |  LabelSetSplit_enum |  71.83 ns |  6.591 ns |  7.053 ns | 0.0918 |     - |     - |     384 B |
-            | LabelSetSplit_enum1 | 120.50 ns |  8.499 ns |  9.788 ns | 0.1318 |     - |     - |     552 B |
+            |              Method |        Mean |      Error |     StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+            |-------------------- |------------:|-----------:|-----------:|-------:|------:|------:|----------:|
+            |            Dict_new | 248.0862 ns | 18.6159 ns | 19.9188 ns | 0.2370 |     - |     - |     992 B |
+            |           Dict_enum | 261.0479 ns | 10.1366 ns | 10.8461 ns | 0.1602 |     - |     - |     672 B |
+            |     ValueTuple_enum | 256.9502 ns | 21.3555 ns | 24.5930 ns | 0.1450 |     - |     - |     608 B |
+            |        LabelSet_new |  52.0137 ns |  2.9141 ns |  3.2390 ns | 0.0516 |     - |     - |     216 B |
+            |       LabelSet_enum | 128.5064 ns |  4.7004 ns |  5.0294 ns | 0.1318 |     - |     - |     552 B |
+            |  LabelSet_enumArray |   0.5445 ns |  0.0719 ns |  0.0828 ns |      - |     - |     - |         - |
+            |  LabelSetSplit_new1 |  86.8414 ns |  1.2100 ns |  1.3450 ns | 0.0937 |     - |     - |     392 B |
+            |  LabelSetSplit_new2 |  56.7981 ns |  0.7631 ns |  0.8165 ns | 0.0535 |     - |     - |     224 B |
+            |  LabelSetSplit_enum |  92.8131 ns |  5.1356 ns |  5.9142 ns | 0.0918 |     - |     - |     384 B |
+            | LabelSetSplit_enum1 | 131.5840 ns | 13.1180 ns | 13.4712 ns | 0.1318 |     - |     - |     552 B |
         */
 
         LabelSet ls;
@@ -109,6 +110,22 @@ namespace MyBenchmark
                 var val = kv.Value;
 
                 ret.Add(Tuple.Create(key,val));
+            }
+
+            return ret;
+        }
+
+        [Benchmark]
+        public List<(string,string)> ValueTuple_enum()
+        {
+            List<(string,string)> ret = new();
+
+            foreach(var kv in dict)
+            {
+                var key = kv.Key;
+                var val = kv.Value;
+
+                ret.Add((key,val));
             }
 
             return ret;
