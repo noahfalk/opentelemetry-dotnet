@@ -22,11 +22,32 @@ own Semantic. (i.e. Counter with Add(), ElapsedDuration as a IDisposable, etc...
 - OTel may implement and deliver counters (derived from .NET MetricBase) with it's
 own Semantic. (i.e. UpCounter with Inc(), ValueRecorder with Record(), etc...)
 
+[Noah]: This principle worries me. I want .NET developers to treat .NET metrics as being 
+a single unified concept. Ie if I am writing a .NET library I want to intrument it:
+a) Without having any reference to an OT specific library
+b) Without mentally apportioning some metrics as being intended for OT usage and others
+are not intended for OT usage.
+
+I'm not opposed to some notion of extensibility for niche use-cases but I would aim
+for 95+% of usage shouldn't need to use it and hopefully it plays no significant role
+in the API design.
+
 - MetricBase will report datapoints into the .NET MetricSource interface
 (EventSource/EventListener model).  OTel SDK will attached as a MetricListeners.
 
+[Noah]: I agree with the Event sourcing principle but I would propose MetricBase is
+the implementation of the source concept in this pattern. So the data flow is:
+MetricBase -> Listener instead of MetricBase -> Source -> Listener.
+
 - SDKs will be opinionated!  Thus, datapoints will be interpreted based
 on it's counter "type" for aggregators, processors, exporters, etc...
+
+[Noah]: I liked the OT metric spec current framing that says instrument type
+is a recommendation from the instrumenter to the collection backend on what
+aggregation would be useful. The SDK may honor that recommendation or it may
+disregard it. For example the SDK might choose to disregard if some other source
+of configuration (app initialization code, adjacent config file, monitoring
+portal config) requested different handling.
 
   - For unknown "type", it is treated as a pass-thru / standard Time Series
   (i.e. as Gauge)
