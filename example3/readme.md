@@ -33,7 +33,7 @@ on it's counter "type" for aggregators, processors, exporters, etc...
 
 - Exporters will need to "normalize" datapoints into "un-opinionated" OTLP
 
-# Topics
+# API questions
 
 ## What should 'Instrument' concepts be named?
 
@@ -117,47 +117,42 @@ mechanism) then batches would be allowed to contain any metric and there would b
 was safe to ignore the batch. Somewhere in the API or SDK some processing would need to record that the batch had
 started and stopped even if none of the metrics set inside the batch were being subscribed to.
 
-## Can batching reuse mostly the same APIs we would use for non-batched recording?
 
-OT defines a RecordBatch() API that relies on special Measurement() APIs on each instrument type. What if we just
-define an API that starts and stops a batch?
+## Should metric types be represented as interfaces or classes in .NET?
 
+Proposed answer: Use a class
+
+Rationale:
+OpenTelemetry often uses [Service Provider Interface patterns](https://en.wikipedia.org/wiki/Service_provider_interface)
+where the API defines interfaces and a registration function for a factory that will produce implementations of that
+interface. This allows the SDK implementation to take complete control of the interface implementation. However our .NET
+runtime API goal is to create a pub-sub model where OpenTelemetry SDK is one potential subscriber. This should create an
+API surface that follows the OT spec but does not give any single subscriber total control over the implementation of that
+API. In particular no subscriber should be able to prevent other subscribers from receiving data by implementing all the
+APIs as no-ops. This means if there is some Metric.Record(double measument) function, .NET needs to provide the pub-sub
+implementation that dispatches the value to each subscriber:
 ````C#
-Metrics.BeginBatch();
-metric1.Add(123);
-metric2.Set(19);
-...
-Metrics.EndBatch();
-
-// another more idiomatic C# variation of this could be:
-using(new MetricBatch())
+public void Record(double measurement)
 {
-    metric1.Add(123);
-    metric2.Set(19);
-    ...
+    foreach(MetricListener l in _listeners)
+    {
+        l.MeasurementRecorded(this, measurement);
+    }
 }
 ````
+There is no particular value to defining metrics as an interface type because by design we don't want to provide an
+option for other components to implement that functionality differently. Instead we expect components that would
+have implemented the interface to subscribe as a listener and implement their custom functionality in the callbacks.
+We should make sure the combination of the callback interface and property getters on the Metric types are rich
+enough for expected usage by the OT SDK and for testing mocks.
 
-From a usability perspective this doesn't require API consumers to record metrics any differently than they
-would have done outside a batch, aside from the Begin/End call itself. It also means that batches can wrap arbitrary
-amounts of code to be more easily adopted when needed. From an implementation ease perspective I don't know if all the
-languages OpenTelemetry cares about support a variadic syntax. C# has the params keyword which appears variadic from the
-callers perspective but it allocates an array on the heap. From a performance perspective this pattern probably uses
-more CPU to make more calls across the API->SDK boundary but doesn't need to allocate temporary storage. There are
-probably both scenarios that benefit and scenarios that regress.
-
-## C# Interface versus abstract/base classes and inheritance
-
-- The .NET team has [framework design guidelines](https://docs.microsoft.com/en-us/dotnet/standard/design-guidelines/) 
-that provide suggestions for API design. All else being equal we would recommend to expose concrete types that
-a developer can create via the 'new' operator rather than interfaces, abstract types, or factory patterns. Largely this
-is to minimize the number of concepts or abstractions that a developer needs to understand in order to use the API.
-
-For more info see:
-https://docs.microsoft.com/en-us/dotnet/standard/design-guidelines/
-https://docs.microsoft.com/en-us/dotnet/standard/design-guidelines/type
-https://docs.microsoft.com/en-us/dotnet/standard/design-guidelines/interface
-
+In theory we could still have an interface even with a single runtime implementation, but in this case both [.NET API
+usability guidelines](https://docs.microsoft.com/en-us/dotnet/standard/design-guidelines/) and performance considerations
+suggest a class is better. On usability, all else being equal, .NET recommends using concrete types that a developer can
+create via the 'new' operator. Largely this is to minimize the number of concepts or abstractions that a developer needs
+to understand to use the API. For performance calls through interfaces are harder for compilers to devirtualize and
+inline which can create small (nanosecond scale) penalties for using an interface. Some metric scenarios are expected
+to be performance critical so there is no reason for us to potentially worsen performance if we get no benefit from it.
 
 ## Do users create a new Metric directly with 'new' or is the creation indirected through a factory (or both)? 
 
@@ -248,12 +243,6 @@ source.AddTag("BetaBuild", "true");
 Gauge g = new Gauge(source, "temperature");
 Counter c = new Counter(source, "hats-sold");
 ````
-
-
-## Metric API to follow EventSource / EventListener design pattern
-
-- This design pattern has been well established with .NET runtime.  (i.e. EventCounter, ETW, TraceProvider, etc...)
-- This is a potential argument for using a factory pattern. Should we fold this into that question?
 
 ## Should we standardize that all dimension values are strings or do we need to allow a broader set of types?
 
@@ -452,14 +441,12 @@ uses a generic T type parameter for the measured value, how easy/hard is that to
 In my chat with Victor it sounded like it gets a little messy, but tractable if we needed to.
 
 
-
 ## LabelSet performance vs usability vs flexibility
 
 Given pass experiences, handling and management of LabelSet will be a hot topic for discussion.  Need to find the right balance amongst the competing tradeoffs.
 
-### 02-04-2021
 
-- Option 1: pass using individual parameters.
+#### Option 1: pass using individual parameters.
 
     ```
     Record(..., 
@@ -467,7 +454,7 @@ Given pass experiences, handling and management of LabelSet will be a hot topic 
         );
     ```
 
-- Option 2: pass using Dictionary
+#### Option 2: pass using Dictionary
 
     - Option 2a: ReadOnlyDictionary
         ```
@@ -491,7 +478,7 @@ Given pass experiences, handling and management of LabelSet will be a hot topic 
         Record(..., labels);
         ```
 
-- Option 3: pass using string array.
+#### Option 3: pass using string array.
 
     ```
     Record(..., 
@@ -499,7 +486,7 @@ Given pass experiences, handling and management of LabelSet will be a hot topic 
         );
     ```
 
-- Option 4: Pass as Columnar-wise (versus Row-wise)
+#### Option 4: Pass as Columnar-wise (versus Row-wise)
 
     ```
     Record(..., 
@@ -507,6 +494,10 @@ Given pass experiences, handling and management of LabelSet will be a hot topic 
         values: new string[] { value1, value2 },
         );
     ```
+
+
+# SDK questions
+
 
 ## Recording a measurement with constant time/space
 
@@ -522,13 +513,47 @@ of these measurements. One approach is to put a Queue between the concerns.
 Recorded measurements are enqueued at constant time/space. A concurrent thread/task
 can dequeue measurements and do appropriate calculations and processing.
 
-Does everyone agree that this is an SDK implementation concern rather than an
-API concern? I propose we segregate our design questions into three categories:
 
-1. .NET API
-2. .NET implementation
-3. SDK implementation
+# Graveyard
 
-I would then prioritize resolving the issues in that order, with the caveat that
-we may want to make an API choice based on the result of resolving particular
-implementation questions.
+I am moving discussion here when they don't appear to be currently relevant. If the become relevant again we can
+always move them back.
+
+## Can batching reuse mostly the same APIs we would use for non-batched recording?
+
+This question is superceded by the more fundamental question above, "Should we have batching?"
+
+OT defines a RecordBatch() API that relies on special Measurement() APIs on each instrument type. What if we just
+define an API that starts and stops a batch?
+
+````C#
+Metrics.BeginBatch();
+metric1.Add(123);
+metric2.Set(19);
+...
+Metrics.EndBatch();
+
+// another more idiomatic C# variation of this could be:
+using(new MetricBatch())
+{
+    metric1.Add(123);
+    metric2.Set(19);
+    ...
+}
+````
+
+From a usability perspective this doesn't require API consumers to record metrics any differently than they
+would have done outside a batch, aside from the Begin/End call itself. It also means that batches can wrap arbitrary
+amounts of code to be more easily adopted when needed. From an implementation ease perspective I don't know if all the
+languages OpenTelemetry cares about support a variadic syntax. C# has the params keyword which appears variadic from the
+callers perspective but it allocates an array on the heap. From a performance perspective this pattern probably uses
+more CPU to make more calls across the API->SDK boundary but doesn't need to allocate temporary storage. There are
+probably both scenarios that benefit and scenarios that regress.
+
+## Metric API to follow EventSource / EventListener design pattern
+
+This one wasn't framed as a question. If anyone wants to reframe it so it is more apparent what are the
+alternatives we are selecting between I'm happy to restore it and discuss.
+
+- This design pattern has been well established with .NET runtime.  (i.e. EventCounter, ETW, TraceProvider, etc...)
+- This is a potential argument for using a factory pattern. Should we fold this into that question?
