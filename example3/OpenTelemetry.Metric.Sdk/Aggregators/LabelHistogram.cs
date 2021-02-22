@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.Diagnostics.Metric;
 using OpenTelemetry.Metric.Api;
 using OpenTelemetry.Metric.Sdk;
 
@@ -17,7 +18,7 @@ namespace OpenTelemetry.Metric.Sdk
     {
         public Dictionary<string,int> bins = new();
 
-        public override void Update<T>(MeterBase meter, T value, LabelSet labels)
+        public override void Update<T>(MeterBase meter, T value, MetricLabel labels)
         {
             var effectiveLabels = new Dictionary<string,string>();
 

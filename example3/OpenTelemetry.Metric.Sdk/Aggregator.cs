@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.Diagnostics.Metric;
 using OpenTelemetry.Metric.Api;
 using OpenTelemetry.Metric.Sdk;
 
@@ -12,7 +13,7 @@ namespace OpenTelemetry.Metric.Sdk
 
     public abstract class AggregatorState
     {
-        public abstract void Update<T>(MeterBase meter, T num, LabelSet labels);
+        public abstract void Update<T>(MeterBase meter, T num, MetricLabel labels);
 
         public abstract (string key, string value)[] Serialize();
     }

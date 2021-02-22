@@ -33,16 +33,16 @@ namespace OpenTelemetry.Metric.Sdk
         {
             var dt = DateTimeOffset.UtcNow;
 
-            if (meter is MeterBase otelMeter && labels is LabelSet labelset)
+            if (meter is MeterBase otelMeter)
             {
-                return sdk.OnRecord(otelMeter, dt, value, labelset);
+                return sdk.OnRecord(otelMeter, dt, value, labels);
             }
             else
             {
                 // Convert to Gauge
                 // TODO: Need to make more performant!
-                var otelMeter2 = new Guage(meter.source, meter.MetricName, new LabelSet(meter.Labels));
-                return sdk.OnRecord(otelMeter2, dt, value, new LabelSet(labels));
+                var otelMeter2 = new Guage(meter.source, meter.MetricName, meter.Labels);
+                return sdk.OnRecord(otelMeter2, dt, value, labels);
             }
 
             return false;
@@ -56,10 +56,10 @@ namespace OpenTelemetry.Metric.Sdk
 
             foreach (var record in records)
             {
-                if (record.Item1 is MeterBase otelMeter && labels is LabelSet labelset)
+                if (record.Item1 is MeterBase otelMeter)
                 {
                     var value = record.Item2;
-                    sdk.OnRecord(otelMeter, dt, value, labelset);
+                    sdk.OnRecord(otelMeter, dt, value, labels);
                 }
                 else
                 {
@@ -67,8 +67,8 @@ namespace OpenTelemetry.Metric.Sdk
                     var value = record.Item2;
 
                     // Convert to Gauge
-                    var otelMeter2 = new Guage(meter.source, meter.MetricName, new LabelSet(meter.Labels));
-                    sdk.OnRecord(otelMeter2, dt, value, new LabelSet(labels));
+                    var otelMeter2 = new Guage(meter.source, meter.MetricName, meter.Labels);
+                    sdk.OnRecord(otelMeter2, dt, value, labels);
                 }
             }
 

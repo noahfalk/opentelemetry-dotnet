@@ -30,14 +30,9 @@ namespace MyBenchmark
             |        LabelSet_new |  52.0137 ns |  2.9141 ns |  3.2390 ns | 0.0516 |     - |     - |     216 B |
             |       LabelSet_enum | 128.5064 ns |  4.7004 ns |  5.0294 ns | 0.1318 |     - |     - |     552 B |
             |  LabelSet_enumArray |   0.5445 ns |  0.0719 ns |  0.0828 ns |      - |     - |     - |         - |
-            |  LabelSetSplit_new1 |  86.8414 ns |  1.2100 ns |  1.3450 ns | 0.0937 |     - |     - |     392 B |
-            |  LabelSetSplit_new2 |  56.7981 ns |  0.7631 ns |  0.8165 ns | 0.0535 |     - |     - |     224 B |
-            |  LabelSetSplit_enum |  92.8131 ns |  5.1356 ns |  5.9142 ns | 0.0918 |     - |     - |     384 B |
-            | LabelSetSplit_enum1 | 131.5840 ns | 13.1180 ns | 13.4712 ns | 0.1318 |     - |     - |     552 B |
         */
 
         LabelSet ls;
-        LabelSetSplit split;
 
         IDictionary<string,string> dict;
 
@@ -67,18 +62,6 @@ namespace MyBenchmark
                 { "Key8", "Value8" },
                 { "Key9", "Value9" },
             };
-
-            split = new LabelSetSplit(
-                "Key1", "Value1",
-                "Key2", "Value2",
-                "Key3", "Value3",
-                "Key4", "Value4",
-                "Key5", "Value5",
-                "Key6", "Value6",
-                "Key7", "Value7",
-                "Key8", "Value8",
-                "Key9", "Value9"
-                );
         }
 
         //****************
@@ -168,62 +151,5 @@ namespace MyBenchmark
         {
             return ls.GetLabels();
         }
-
-        //****************
-
-        [Benchmark]
-        public LabelSetSplit LabelSetSplit_new1()
-        {
-            return new LabelSetSplit(
-                "Key1", "Value1",
-                "Key2", "Value2",
-                "Key3", "Value3",
-                "Key4", "Value4",
-                "Key5", "Value5",
-                "Key6", "Value6",
-                "Key7", "Value7",
-                "Key8", "Value8",
-                "Key9", "Value9"
-                );
-        }
-
-        [Benchmark]
-        public LabelSetSplit LabelSetSplit_new2()
-        {
-            return new LabelSetSplit(
-                new string[] {
-                    "Key1", "Key2", "Key3", "Key4", "Key5", "Key6", "Key7", "Key8", "Key9"
-                    },
-                new string[] {
-                    "Value1", "Value2", "Value3", "Value4", "Value5", "Value6", "Value7", "Value8", "Value9"
-                    }
-            );
-        }
-
-        [Benchmark]
-        public Tuple<string,string>[] LabelSetSplit_enum()
-        {
-            return split.GetLabels();
-        }
-
-        [Benchmark]
-        public Tuple<string,string>[] LabelSetSplit_enum1()
-        {
-            var ls = split.GetKeyValues();
-
-            var ret = new Tuple<string,string>[ls.Length / 2];
-
-            int pos = 0;
-            for (int n = 0; n < ls.Length; n += 2)
-            {
-                var key = ls[n];
-                var val = ls[n+1];
-                ret[pos++] = Tuple.Create(key,val);
-            }
-
-            return ret;
-        }
-
-        //****************
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.Diagnostics.Metric;
 using OpenTelemetry.Metric.Api;
 using OpenTelemetry.Metric.Sdk;
 
@@ -20,7 +21,7 @@ namespace OpenTelemetry.Metric.Sdk
         public double max = 0;
         public double min = 0;
 
-        public override void Update<T>(MeterBase meter, T value, LabelSet labels)
+        public override void Update<T>(MeterBase meter, T value, MetricLabel labels)
         {
             double num = 0;
 

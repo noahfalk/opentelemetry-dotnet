@@ -24,7 +24,7 @@ namespace MyLibrary
 
             counter_request = MetricSource.DefaultSource.CreateCounter("request2", labels);
 
-            guage_qsize = new Guage(MetricSource.DefaultSource, "queue_size", LabelSet.Empty, 
+            guage_qsize = new Guage(MetricSource.DefaultSource, "queue_size", LabelSet.DefaultLabel, 
                 new LabelSet(
                     ("Description", "A measure of Queue size"),
                     ("DefaultAggregator", "Histogram"))
@@ -35,7 +35,7 @@ namespace MyLibrary
             // Setup a callback Observer for a meter
             counter_request3.SetObserver((m) => {
                 int val = count;
-                var labels = new LabelSet(
+                MetricLabel labels = new LabelSet(
                     ("LibraryInstanceName", name),
                     ("Mode", "Observer"));
                 return Tuple.Create((object)val, labels);
