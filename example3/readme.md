@@ -13,24 +13,17 @@ Our goals are:
 
 ## Principles
 
-- .NET provides a way to pass datapoints (un-opinionated) in a Time Series.  With
-optional metadata / hints for downstream interpretation.
+- .NET provides (MetricBase class) a way to pass datapoints
+(un-opinionated).  With optional metadata / hints for
+downstream interpretation.
 
 - .NET may implement and deliver counters (derived from .NET MetricBase) with it's
 own Semantic. (i.e. Counter with Add(), ElapsedDuration as a IDisposable, etc...)
 
+  It is expected that counters for most use cases (i.e. 95%+) will be available in .NET.
+
 - OTel may implement and deliver counters (derived from .NET MetricBase) with it's
 own Semantic. (i.e. UpCounter with Inc(), ValueRecorder with Record(), etc...)
-
-[Noah]: This principle worries me. I want .NET developers to treat .NET metrics as being 
-a single unified concept. Ie if I am writing a .NET library I want to intrument it:
-a) Without having any reference to an OT specific library
-b) Without mentally apportioning some metrics as being intended for OT usage and others
-are not intended for OT usage.
-
-I'm not opposed to some notion of extensibility for niche use-cases but I would aim
-for 95+% of usage shouldn't need to use it and hopefully it plays no significant role
-in the API design.
 
 - MetricBase will report datapoints into the .NET MetricSource interface
 (EventSource/EventListener model).  OTel SDK will attached as a MetricListeners.
