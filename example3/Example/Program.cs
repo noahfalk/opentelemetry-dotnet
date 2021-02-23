@@ -48,6 +48,8 @@ namespace Example
                         ("OperName", "*"), 
                         ("Mode", "Batch")))
 
+                .AggregateByLabels(new LastValueAggregator())
+
                 .AddExporter(new ConsoleExporter("export1", 6000))
 
                 // Finalize pipeline
@@ -92,11 +94,14 @@ namespace Example
             taskList.Add(Task.Run(async () => {
                 var rate = new RateCounter(MetricSource.DefaultSource, "Rate", 1, MetricLabelSet.DefaultLabel);
                 var sum = new SumCounter(MetricSource.DefaultSource, "Sum", 1, MetricLabelSet.DefaultLabel);
+                var lastvalue = new LastVauleGauge(MetricSource.DefaultSource, "Last", 1, MetricLabelSet.DefaultLabel);
 
                 while (!token.IsCancellationRequested)
                 {
                     rate.Mark();
-                    sum.Add(rand.Next()%100);
+                    sum.Add(rand.Next() % 100);
+                    lastvalue.Report(rand.Next() % 100);
+
                     await Task.Delay(50);
                 }
             }));

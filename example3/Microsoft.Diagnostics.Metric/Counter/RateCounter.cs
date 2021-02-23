@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Metric
         public RateCounter(MetricSource source, string name, int periodInSeconds, MetricLabelSet labels) 
             : base(source, name, "RateCounter", labels)
         {
-            this.periodInSeconds = periodInSeconds;
+            this.periodInSeconds = Math.Min(periodInSeconds, 1);
             var token = tokenSrc.Token;
 
             this.task = Task.Run(async () =>
