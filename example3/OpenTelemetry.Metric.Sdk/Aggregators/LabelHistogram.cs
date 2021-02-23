@@ -18,7 +18,7 @@ namespace OpenTelemetry.Metric.Sdk
     {
         public Dictionary<string,int> bins = new();
 
-        public override void Update<T>(MeterBase meter, T value, MetricLabel labels)
+        public override void Update<T>(MetricBase meter, T value, MetricLabel labels)
         {
             var effectiveLabels = new Dictionary<string,string>();
 

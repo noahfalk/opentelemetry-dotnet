@@ -35,7 +35,7 @@ namespace OpenTelemetry.Metric.Sdk
 
         private HashSet<MetricSource> sources = new();
 
-        private ConcurrentQueue<Tuple<MeterBase,DateTimeOffset,object,MetricLabel>> incomingQueue = new();
+        private ConcurrentQueue<Tuple<MetricBase,DateTimeOffset,object,MetricLabel>> incomingQueue = new();
         private bool useQueue = false;
 
         public MetricPipeline Name(string name)
@@ -178,7 +178,7 @@ namespace OpenTelemetry.Metric.Sdk
             }
         }
 
-        private List<(string labelKey, Aggregator agg)> ExpandLabels(MeterBase meter, MetricLabel labels)
+        private List<(string labelKey, Aggregator agg)> ExpandLabels(MetricBase meter, MetricLabel labels)
         {
             var ns = meter.source.Name;
             var name = meter.MetricName;
@@ -210,10 +210,13 @@ namespace OpenTelemetry.Metric.Sdk
 
             Dictionary<string,string> hints = new();
 
-            var hintLabels = meter.Hints.GetLabels();
-            foreach (var label in hintLabels)
+            if (meter is MeterBase otelmeter)
             {
-                hints[label.name] = label.value;
+                var hintLabels = otelmeter.Hints.GetLabels();
+                foreach (var label in hintLabels)
+                {
+                    hints[label.name] = label.value;
+                }
             }
 
             // Determine how to expand into different aggregates instances
@@ -299,7 +302,7 @@ namespace OpenTelemetry.Metric.Sdk
             return label_aggregates;
         }
 
-        public bool OnRecord<T>(MeterBase meter, DateTimeOffset dt, T value, MetricLabel labels)
+        public bool OnRecord<T>(MetricBase meter, DateTimeOffset dt, T value, MetricLabel labels)
         {
             if (useQueue)
             {
@@ -310,7 +313,7 @@ namespace OpenTelemetry.Metric.Sdk
             return ProcessRecord<T>(meter, dt, value, labels);
         }
 
-        private bool ProcessRecord<T>(MeterBase meter, DateTimeOffset dt, T value, MetricLabel labels)
+        private bool ProcessRecord<T>(MetricBase meter, DateTimeOffset dt, T value, MetricLabel labels)
         {
             if (isBuilt && meter.Enabled)
             {

@@ -23,7 +23,15 @@ namespace Microsoft.Diagnostics.Metric
             {
                 while (!token.IsCancellationRequested)
                 {
-                    await Task.Delay(this.periodInSeconds * 1000);
+                    try
+                    {
+                        await Task.Delay(this.periodInSeconds * 1000, token);
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        // Do Nothing
+                    }
+
                     this.Flush();
                 }
             });
@@ -39,25 +47,22 @@ namespace Microsoft.Diagnostics.Metric
 
         public void Mark()
         {
-            Interlocked.Increment(ref count);
+            Interlocked.Increment(ref this.count);
         }
 
         private void Flush()
         {
             var curTick = DateTimeOffset.UtcNow.UtcTicks;
-
             var lastTick = Interlocked.Exchange(ref this.lastTick, curTick);
-            var cnt = Interlocked.Exchange(ref count, 0);
 
-            long elapsed = (curTick - lastTick) / 100000;
-
-            double rate = 0.0;
-            if (elapsed > 0)
+            var cnt = Interlocked.Exchange(ref this.count, 0);
+            if (cnt > 0)
             {
-                rate = cnt * 100 / elapsed;
-            }
+                long elapsed = curTick - lastTick;
 
-            RecordMetricData(rate, MetricLabel.DefaultLabel);
+                double rate = (cnt * 100) / (elapsed / 100000);
+                RecordMetricData(rate, MetricLabel.DefaultLabel);
+            }
         }
     }
 }

@@ -16,18 +16,22 @@ namespace OpenTelemetry.Metric.Sdk
 
     public class SumCountMinMaxState : AggregatorState
     {
-        public int count = 0;
+        public long count = 0;
         public double sum = 0;
         public double max = 0;
         public double min = 0;
 
-        public override void Update<T>(MeterBase meter, T value, MetricLabel labels)
+        public override void Update<T>(MetricBase meter, T value, MetricLabel labels)
         {
             double num = 0;
 
             if (value is int i)
             {
                 num = i;
+            }
+            else if (value is long l)
+            {
+                num = l;
             }
             else if (value is double d)
             {

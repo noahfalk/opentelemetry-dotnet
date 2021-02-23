@@ -33,19 +33,7 @@ namespace OpenTelemetry.Metric.Sdk
         {
             var dt = DateTimeOffset.UtcNow;
 
-            if (meter is MeterBase otelMeter)
-            {
-                return sdk.OnRecord(otelMeter, dt, value, labels);
-            }
-            else
-            {
-                // Convert to Gauge
-                // TODO: Need to make more performant!
-                var otelMeter2 = new Guage(meter.source, meter.MetricName, meter.Labels);
-                return sdk.OnRecord(otelMeter2, dt, value, labels);
-            }
-
-            return false;
+            return sdk.OnRecord(meter, dt, value, labels);
         }
 
         public override bool OnRecord<T>(MetricSource source, IList<Tuple<MetricBase, T>> records, MetricLabel labels)
@@ -56,20 +44,7 @@ namespace OpenTelemetry.Metric.Sdk
 
             foreach (var record in records)
             {
-                if (record.Item1 is MeterBase otelMeter)
-                {
-                    var value = record.Item2;
-                    sdk.OnRecord(otelMeter, dt, value, labels);
-                }
-                else
-                {
-                    var meter = record.Item1;
-                    var value = record.Item2;
-
-                    // Convert to Gauge
-                    var otelMeter2 = new Guage(meter.source, meter.MetricName, meter.Labels);
-                    sdk.OnRecord(otelMeter2, dt, value, labels);
-                }
+                sdk.OnRecord(record.Item1, dt, record.Item2, labels);
             }
 
             return true;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using MyLibrary;
 using Microsoft.Diagnostics.Metric;
 using OpenTelemetry.Metric.Api;
@@ -67,16 +68,18 @@ namespace Example
             var cancelToken = new CancellationTokenSource();
             var token = cancelToken.Token;
 
-            Task t1 = Task.Run(async () => {
+            var taskList = new List<Task>();
+
+            taskList.Add(Task.Run(async () => {
                 var lib = new Library("Library_1", token);
                 while (!token.IsCancellationRequested)
                 {
                     lib.DoOperation();
                     await Task.Delay((rand.Next() % 10) * 100);
                 }
-            });
+            }));
 
-            Task t2 = Task.Run(async () => {
+            taskList.Add(Task.Run(async () => {
                 var lib = new Library("Library_2", token);
 
                 while (!token.IsCancellationRequested)
@@ -84,24 +87,24 @@ namespace Example
                     lib.DoOperation();
                     await Task.Delay(200);
                 }
-            });
+            }));
 
-            Task t3 = Task.Run(async () => {
-                var rate = new RateCounter(MetricSource.DefaultSource, "RateCounter", 1, MetricLabel.DefaultLabel);
+            taskList.Add(Task.Run(async () => {
+                var rate = new RateCounter(MetricSource.DefaultSource, "Rate", 1, MetricLabel.DefaultLabel);
+                var sum = new SumCounter(MetricSource.DefaultSource, "Sum", 1, MetricLabel.DefaultLabel);
 
                 while (!token.IsCancellationRequested)
                 {
                     rate.Mark();
+                    sum.Add(rand.Next()%100);
                     await Task.Delay(50);
                 }
-            });
+            }));
 
             await Task.Delay(periodMilliseconds);
             cancelToken.Cancel();
 
-            await t1;
-            await t2;
-            await t3;
+            await Task.WhenAll(taskList.ToArray());
         }
     }
 }

@@ -13,7 +13,7 @@ namespace OpenTelemetry.Metric.Sdk
 
     public abstract class AggregatorState
     {
-        public abstract void Update<T>(MeterBase meter, T num, MetricLabel labels);
+        public abstract void Update<T>(MetricBase meter, T num, MetricLabel labels);
 
         public abstract (string key, string value)[] Serialize();
     }
