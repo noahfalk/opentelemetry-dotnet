@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Metric
 
         private long lastTick;
 
-        public RateCounter(MetricSource source, string name, int periodInSeconds, MetricLabel labels) 
+        public RateCounter(MetricSource source, string name, int periodInSeconds, MetricLabelSet labels) 
             : base(source, name, "RateCounter", labels)
         {
             this.periodInSeconds = periodInSeconds;
@@ -61,7 +61,7 @@ namespace Microsoft.Diagnostics.Metric
                 long elapsed = curTick - lastTick;
 
                 double rate = (cnt * 100) / (elapsed / 100000);
-                RecordMetricData(rate, MetricLabel.DefaultLabel);
+                RecordMetricData(rate, MetricLabelSet.DefaultLabel);
             }
         }
     }

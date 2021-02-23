@@ -2,7 +2,7 @@ using System;
 
 namespace Microsoft.Diagnostics.Metric
 {
-    public sealed class EmptyMetricLabel : MetricLabel
+    public sealed class EmptyMetricLabel : MetricLabelSet
     {
         static private (string name, string value)[] emptyTuple = {};
 

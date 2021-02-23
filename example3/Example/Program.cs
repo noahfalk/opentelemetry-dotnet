@@ -21,7 +21,7 @@ namespace Example
         {
             // Example of setting up a SDK
 
-            var sdk = new MetricPipeline()
+            var sdk = new MetricProvider()
                 .Name("MyProgram")
                 .SetCollectionPeriod(4000)
 
@@ -90,8 +90,8 @@ namespace Example
             }));
 
             taskList.Add(Task.Run(async () => {
-                var rate = new RateCounter(MetricSource.DefaultSource, "Rate", 1, MetricLabel.DefaultLabel);
-                var sum = new SumCounter(MetricSource.DefaultSource, "Sum", 1, MetricLabel.DefaultLabel);
+                var rate = new RateCounter(MetricSource.DefaultSource, "Rate", 1, MetricLabelSet.DefaultLabel);
+                var sum = new SumCounter(MetricSource.DefaultSource, "Sum", 1, MetricLabelSet.DefaultLabel);
 
                 while (!token.IsCancellationRequested)
                 {

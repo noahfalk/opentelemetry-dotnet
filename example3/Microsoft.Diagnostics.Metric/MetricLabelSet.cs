@@ -2,13 +2,13 @@ using System;
 
 namespace Microsoft.Diagnostics.Metric
 {
-    public class MetricLabel
+    public class MetricLabelSet
     {
         static private (string name, string value)[] emptyLabel = {};
 
-        static private MetricLabel defaultLabel = new MetricLabel();
+        static private MetricLabelSet defaultLabel = new MetricLabelSet();
 
-        static public MetricLabel DefaultLabel
+        static public MetricLabelSet DefaultLabel
         {
             get => defaultLabel;
         }

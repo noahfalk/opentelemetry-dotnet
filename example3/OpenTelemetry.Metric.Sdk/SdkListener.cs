@@ -11,14 +11,14 @@ namespace OpenTelemetry.Metric.Sdk
 {
     public class SdkListener : MetricListener
     {
-        MetricPipeline sdk;
+        MetricProvider provider;
 
-        public SdkListener(MetricPipeline sdk)
+        public SdkListener(MetricProvider provider)
         {
-            this.sdk = sdk;
+            this.provider = provider;
         }
 
-        public override bool OnCreate(MetricSource source, MetricBase meter, MetricLabel labels)
+        public override bool OnCreate(MetricSource source, MetricBase meter, MetricLabelSet labels)
         {
             // This SDK can store additional state data per meter
             if (meter is MeterBase otelMeter)
@@ -29,14 +29,14 @@ namespace OpenTelemetry.Metric.Sdk
             return true;
         }
 
-        public override bool OnRecord<T>(MetricSource source, MetricBase meter, T value, MetricLabel labels)
+        public override bool OnRecord<T>(MetricSource source, MetricBase meter, T value, MetricLabelSet labels)
         {
             var dt = DateTimeOffset.UtcNow;
 
-            return sdk.OnRecord(meter, dt, value, labels);
+            return provider.OnRecord(meter, dt, value, labels);
         }
 
-        public override bool OnRecord<T>(MetricSource source, IList<Tuple<MetricBase, T>> records, MetricLabel labels)
+        public override bool OnRecord<T>(MetricSource source, IList<Tuple<MetricBase, T>> records, MetricLabelSet labels)
         {
             var dt = DateTimeOffset.UtcNow;
 
@@ -44,7 +44,7 @@ namespace OpenTelemetry.Metric.Sdk
 
             foreach (var record in records)
             {
-                sdk.OnRecord(record.Item1, dt, record.Item2, labels);
+                provider.OnRecord(record.Item1, dt, record.Item2, labels);
             }
 
             return true;

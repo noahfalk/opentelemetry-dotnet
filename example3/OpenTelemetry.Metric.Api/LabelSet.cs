@@ -3,11 +3,11 @@ using Microsoft.Diagnostics.Metric;
 
 namespace OpenTelemetry.Metric.Api
 {
-    public class LabelSet : MetricLabel
+    public class LabelSet : MetricLabelSet
     {
         private (string name, string value)[] labels = {};
 
-        public LabelSet(MetricLabel label)
+        public LabelSet(MetricLabelSet label)
         {
             this.labels = label.GetLabels();
         }

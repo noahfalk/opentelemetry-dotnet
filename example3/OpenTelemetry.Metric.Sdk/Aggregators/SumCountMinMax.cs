@@ -21,7 +21,7 @@ namespace OpenTelemetry.Metric.Sdk
         public double max = 0;
         public double min = 0;
 
-        public override void Update<T>(MetricBase meter, T value, MetricLabel labels)
+        public override void Update<T>(MetricBase meter, T value, MetricLabelSet labels)
         {
             double num = 0;
 

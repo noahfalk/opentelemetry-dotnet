@@ -9,20 +9,20 @@ namespace OpenTelemetry.Metric.Api
 {
     public abstract class MeterBase : MetricBase
     {
-        public MetricLabel Hints { get; }
+        public MetricLabelSet Hints { get; }
 
-        protected Func<MeterBase, Tuple<object,MetricLabel>> observer;
+        protected Func<MeterBase, Tuple<object,MetricLabelSet>> observer;
 
         // Allow custom Meters to store their own state
         public MeterState state { get; set; }
 
-        protected MeterBase(MetricSource source, string name, string type, MetricLabel labels, MetricLabel hints)
+        protected MeterBase(MetricSource source, string name, string type, MetricLabelSet labels, MetricLabelSet hints)
             : base(source, name, type, labels)
         {
             Hints = hints;
         }
 
-        public void SetObserver(Func<MeterBase, Tuple<object,MetricLabel>> func)
+        public void SetObserver(Func<MeterBase, Tuple<object,MetricLabelSet>> func)
         {
             observer = func;
         }

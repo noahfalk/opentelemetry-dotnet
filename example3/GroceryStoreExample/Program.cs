@@ -9,7 +9,7 @@ namespace GroceryStoreExample
         public static void Main(string[] args)
         {
             // Create Metric Pipeline
-            var pipeline = new MetricPipeline()
+            var pipeline = new MetricProvider()
                 .Name("OrderPipeline1")
                 .AttachSource("StoreMetrics")
                 .AggregateByLabels(new SumCountMinMax(), 
@@ -22,7 +22,7 @@ namespace GroceryStoreExample
                 .AddExporter(new ConsoleExporter("export1", 6000))
                 .Build();
 
-            var pipeline2 = new MetricPipeline()
+            var pipeline2 = new MetricProvider()
                 .Name("OrderPipeline2")
                 .AttachSource("StoreMetrics")
                 .SetCollectionPeriod(6000)

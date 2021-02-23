@@ -10,7 +10,7 @@ using OpenTelemetry.Metric.Api;
 
 namespace OpenTelemetry.Metric.Sdk
 {
-    public class MetricPipeline
+    public class MetricProvider
     {
         private readonly object lockMeters = new();
         private List<MeterBase> meters = new();
@@ -24,7 +24,7 @@ namespace OpenTelemetry.Metric.Sdk
 
         private List<Tuple<string,string>> metricFilterList = new();
 
-        private List<(Aggregator agg, MetricLabel[] labels)> aggregateByLabelSet = new();
+        private List<(Aggregator agg, MetricLabelSet[] labels)> aggregateByLabelSet = new();
 
         private List<Exporter> exporters = new();
 
@@ -35,10 +35,10 @@ namespace OpenTelemetry.Metric.Sdk
 
         private HashSet<MetricSource> sources = new();
 
-        private ConcurrentQueue<Tuple<MetricBase,DateTimeOffset,object,MetricLabel>> incomingQueue = new();
+        private ConcurrentQueue<Tuple<MetricBase,DateTimeOffset,object,MetricLabelSet>> incomingQueue = new();
         private bool useQueue = false;
 
-        public MetricPipeline Name(string name)
+        public MetricProvider Name(string name)
         {
             this.name = name;
             this.listener = new SdkListener(this);
@@ -46,56 +46,56 @@ namespace OpenTelemetry.Metric.Sdk
             return this;
         }
 
-        public MetricPipeline AttachSource(MetricSource source)
+        public MetricProvider AttachSource(MetricSource source)
         {
             sources.Add(source);
             return this;
         }
 
-        public MetricPipeline AttachSource(string ns)
+        public MetricProvider AttachSource(string ns)
         {
             var source = MetricSource.GetSource(ns);
             sources.Add(source);
             return this;
         }
 
-        public MetricPipeline AddMetricInclusion(string term)
+        public MetricProvider AddMetricInclusion(string term)
         {
             metricFilterList.Add(Tuple.Create("Include", term));
             return this;
         }
 
-        public MetricPipeline AddMetricExclusion(string term)
+        public MetricProvider AddMetricExclusion(string term)
         {
             metricFilterList.Add(Tuple.Create("Exclude", term));
             return this;
         }
 
-        public MetricPipeline AggregateByLabels(Aggregator agg, params MetricLabel[] labelset)
+        public MetricProvider AggregateByLabels(Aggregator agg, params MetricLabelSet[] labelset)
         {
             aggregateByLabelSet.Add((agg, labelset));
             return this;
         }
 
-        public MetricPipeline AddExporter(Exporter exporter)
+        public MetricProvider AddExporter(Exporter exporter)
         {
             exporters.Add(exporter);
             return this;
         }
 
-        public MetricPipeline SetCollectionPeriod(int milliseconds)
+        public MetricProvider SetCollectionPeriod(int milliseconds)
         {
             collectPeriod_ms = milliseconds;
             return this;
         }
 
-        public MetricPipeline UseQueue()
+        public MetricProvider UseQueue()
         {
             useQueue = true;
             return this;
         }
 
-        public MetricPipeline Build()
+        public MetricProvider Build()
         {
             // Start Periodic Collection Task
 
@@ -178,7 +178,7 @@ namespace OpenTelemetry.Metric.Sdk
             }
         }
 
-        private List<(string labelKey, Aggregator agg)> ExpandLabels(MetricBase meter, MetricLabel labels)
+        private List<(string labelKey, Aggregator agg)> ExpandLabels(MetricBase meter, MetricLabelSet labels)
         {
             var ns = meter.source.Name;
             var name = meter.MetricName;
@@ -302,7 +302,7 @@ namespace OpenTelemetry.Metric.Sdk
             return label_aggregates;
         }
 
-        public bool OnRecord<T>(MetricBase meter, DateTimeOffset dt, T value, MetricLabel labels)
+        public bool OnRecord<T>(MetricBase meter, DateTimeOffset dt, T value, MetricLabelSet labels)
         {
             if (useQueue)
             {
@@ -313,7 +313,7 @@ namespace OpenTelemetry.Metric.Sdk
             return ProcessRecord<T>(meter, dt, value, labels);
         }
 
-        private bool ProcessRecord<T>(MetricBase meter, DateTimeOffset dt, T value, MetricLabel labels)
+        private bool ProcessRecord<T>(MetricBase meter, DateTimeOffset dt, T value, MetricLabelSet labels)
         {
             if (isBuilt && meter.Enabled)
             {

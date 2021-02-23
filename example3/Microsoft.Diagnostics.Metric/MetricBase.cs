@@ -14,11 +14,11 @@ namespace Microsoft.Diagnostics.Metric
 
         public string MetricType { get; }
 
-        public MetricLabel Labels { get; }
+        public MetricLabelSet Labels { get; }
 
         public bool Enabled { get; set; } = true;
 
-        protected MetricBase(MetricSource source, string name, string type, MetricLabel labels)
+        protected MetricBase(MetricSource source, string name, string type, MetricLabelSet labels)
         {
             MetricName = name;
             MetricType = type;
@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Metric
             source.ReportCreate(this, labels);
         }
 
-        protected void RecordMetricData<T>(T val, MetricLabel labels)
+        protected void RecordMetricData<T>(T val, MetricLabelSet labels)
         {
             if (Enabled)
             {

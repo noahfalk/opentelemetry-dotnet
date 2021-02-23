@@ -6,8 +6,8 @@ namespace Microsoft.Diagnostics.Metric
 {
     public class SumCounter : MetricBase
     {
-        private long icount = 0;
-        private long isum = 0;
+        private long lcount = 0;
+        private long lsum = 0;
 
         private long dcount = 0;
         private double dsum = 0.0;
@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Metric
         private Task task;
         private CancellationTokenSource tokenSrc = new();
 
-        public SumCounter(MetricSource source, string name, int periodInSeconds, MetricLabel labels) 
+        public SumCounter(MetricSource source, string name, int periodInSeconds, MetricLabelSet labels) 
             : base(source, name, "SumCounter", labels)
         {
             this.periodInSeconds = periodInSeconds;
@@ -51,8 +51,13 @@ namespace Microsoft.Diagnostics.Metric
         {
             if (delta is int ival)
             {
-                Interlocked.Add(ref isum, ival);
-                Interlocked.Increment(ref icount);
+                Interlocked.Add(ref lsum, (long) ival);
+                Interlocked.Increment(ref lcount);
+            }
+            else if (delta is long lval)
+            {
+                Interlocked.Add(ref lsum, lval);
+                Interlocked.Increment(ref lcount);
             }
             else if (delta is double dval)
             {
@@ -66,18 +71,18 @@ namespace Microsoft.Diagnostics.Metric
 
         private void Flush()
         {
-            var icount = Interlocked.Exchange(ref this.icount, 0);
+            var icount = Interlocked.Exchange(ref this.lcount, 0);
             if (icount > 0)
             {
-                var isum = Interlocked.Exchange(ref this.isum, 0);
-                RecordMetricData(isum, MetricLabel.DefaultLabel);
+                var isum = Interlocked.Exchange(ref this.lsum, 0);
+                RecordMetricData(isum, MetricLabelSet.DefaultLabel);
             }
 
             var dcount = Interlocked.Exchange(ref this.dcount, 0);
             if (dcount > 0)
             {
                 var dsum = Interlocked.Exchange(ref this.dsum, 0.0);
-                RecordMetricData(dsum, MetricLabel.DefaultLabel);
+                RecordMetricData(dsum, MetricLabelSet.DefaultLabel);
             }
         }
     }

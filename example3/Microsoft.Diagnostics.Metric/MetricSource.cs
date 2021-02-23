@@ -58,7 +58,7 @@ namespace Microsoft.Diagnostics.Metric
             return listeners.TryRemove(KeyValuePair.Create(listener, desc));
         }
 
-        internal bool ReportCreate(MetricBase meter, MetricLabel labels)
+        internal bool ReportCreate(MetricBase meter, MetricLabelSet labels)
         {
             foreach (var listener in listeners)
             {
@@ -68,7 +68,7 @@ namespace Microsoft.Diagnostics.Metric
             return true;
         }
 
-        public bool ReportValue<T>(MetricBase meter, T value, MetricLabel labels)
+        public bool ReportValue<T>(MetricBase meter, T value, MetricLabelSet labels)
         {
             foreach (var listener in listeners)
             {
@@ -78,7 +78,7 @@ namespace Microsoft.Diagnostics.Metric
             return true;
         }
 
-        public bool ReportValue<T>(IList<Tuple<MetricBase, T>> records, MetricLabel labels)
+        public bool ReportValue<T>(IList<Tuple<MetricBase, T>> records, MetricLabelSet labels)
         {
             foreach (var listener in listeners)
             {

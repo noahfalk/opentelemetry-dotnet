@@ -35,7 +35,7 @@ namespace MyLibrary
             // Setup a callback Observer for a meter
             counter_request3.SetObserver((m) => {
                 int val = count;
-                MetricLabel labels = new LabelSet(
+                MetricLabelSet labels = new LabelSet(
                     ("LibraryInstanceName", name),
                     ("Mode", "Observer"));
                 return Tuple.Create((object)val, labels);
