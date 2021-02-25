@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Metric
             this.source = source;
 
             // TODO: How to handle attach/detach of sources and listeners?
-            source.ReportCreate(this, labels);
+            source.ReportCreate(this);
         }
 
         protected void RecordMetricData<T>(T val, MetricLabelSet labels)

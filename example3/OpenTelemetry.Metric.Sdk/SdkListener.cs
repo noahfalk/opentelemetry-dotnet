@@ -18,7 +18,7 @@ namespace OpenTelemetry.Metric.Sdk
             this.provider = provider;
         }
 
-        public override bool OnCreate(MetricSource source, MetricBase meter, MetricLabelSet labels)
+        public override bool OnCreate(MetricSource source, MetricBase meter)
         {
             // This SDK can store additional state data per meter
             if (meter is MeterBase otelMeter)

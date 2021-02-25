@@ -24,7 +24,7 @@ namespace MyLibrary
 
             counter_request = MetricSource.DefaultSource.CreateCounter("request2", labels);
 
-            guage_qsize = new Guage(MetricSource.DefaultSource, "queue_size", MetricLabelSet.DefaultLabel, 
+            guage_qsize = new Guage(MetricSource.DefaultSource, "queue_size", MetricLabelSet.DefaultLabelSet, 
                 new MetricLabelSet(
                     ("Description", "A measure of Queue size"),
                     ("DefaultAggregator", "Histogram"))

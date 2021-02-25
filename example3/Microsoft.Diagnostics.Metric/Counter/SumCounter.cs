@@ -19,29 +19,10 @@ namespace Microsoft.Diagnostics.Metric
         private CancellationTokenSource tokenSrc = new();
 
         public SumCounter(MetricSource source, string name, int periodInSeconds, MetricLabelSet labels, MetricLabelSet hints)
-            : base(source, name, "SumCounter", labels, hints)
+            : base(source, name, "SumCounter", labels, AddDefaultHints(hints))
         {
             this.periodInSeconds = Math.Min(periodInSeconds, 1);
             var token = tokenSrc.Token;
-
-            // Add DefaultAggregator hints if does not exists
-
-            var newHints = new List<(string name, string value)>();
-            var foundDefaultAggregator = false;
-            foreach (var hint in hints.GetLabels())
-            {
-                if (hint.name == "DefaultAggregator")
-                {
-                    foundDefaultAggregator = true;
-                }
-
-                newHints.Add(hint);
-            }
-            if (!foundDefaultAggregator)
-            {
-                newHints.Add(("DefaultAggregator", "Sum"));
-                this.Hints = new MetricLabelSet(newHints.ToArray());
-            }
 
             this.task = Task.Run(async () =>
             {
@@ -59,6 +40,32 @@ namespace Microsoft.Diagnostics.Metric
                     this.Flush();
                 }
             });
+        }
+
+        private static MetricLabelSet AddDefaultHints(MetricLabelSet hints)
+        {
+            // Add DefaultAggregator hints if does not exists
+
+            var newHints = new List<(string name, string value)>();
+            
+            var foundDefaultAggregator = false;
+            foreach (var hint in hints.GetLabels())
+            {
+                if (hint.name == "DefaultAggregator")
+                {
+                    foundDefaultAggregator = true;
+                }
+
+                newHints.Add(hint);
+            }
+
+            if (!foundDefaultAggregator)
+            {
+                newHints.Add(("DefaultAggregator", "Sum"));
+                hints = new MetricLabelSet(newHints.ToArray());
+            }
+
+            return hints;
         }
 
         ~SumCounter()
@@ -95,14 +102,14 @@ namespace Microsoft.Diagnostics.Metric
             if (icount > 0)
             {
                 var isum = Interlocked.Exchange(ref this.lsum, 0);
-                RecordMetricData(isum, MetricLabelSet.DefaultLabel);
+                RecordMetricData(isum, MetricLabelSet.DefaultLabelSet);
             }
 
             var dcount = Interlocked.Exchange(ref this.dcount, 0);
             if (dcount > 0)
             {
                 var dsum = Interlocked.Exchange(ref this.dsum, 0.0);
-                RecordMetricData(dsum, MetricLabelSet.DefaultLabel);
+                RecordMetricData(dsum, MetricLabelSet.DefaultLabelSet);
             }
         }
     }

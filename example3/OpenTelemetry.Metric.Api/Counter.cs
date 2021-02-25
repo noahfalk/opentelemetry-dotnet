@@ -7,22 +7,22 @@ namespace OpenTelemetry.Metric.Api
     public class Counter : MeterBase
     {
         public Counter(string name) 
-            : base(MetricSource.DefaultSource, name, "Counter", MetricLabelSet.DefaultLabel, MetricLabelSet.DefaultLabel)
+            : base(MetricSource.DefaultSource, name, "Counter", MetricLabelSet.DefaultLabelSet, MetricLabelSet.DefaultLabelSet)
         {
         }
 
         public Counter(string name, MetricLabelSet labels) 
-            : base(MetricSource.DefaultSource, name, "Counter", labels, MetricLabelSet.DefaultLabel)
+            : base(MetricSource.DefaultSource, name, "Counter", labels, MetricLabelSet.DefaultLabelSet)
         {
         }
 
         public Counter(MetricSource source, string name) 
-            : base(source, name, "Counter", MetricLabelSet.DefaultLabel, MetricLabelSet.DefaultLabel)
+            : base(source, name, "Counter", MetricLabelSet.DefaultLabelSet, MetricLabelSet.DefaultLabelSet)
         {
         }
 
         public Counter(MetricSource source, string name, MetricLabelSet labels) 
-            : base(source, name, "Counter", labels, MetricLabelSet.DefaultLabel)
+            : base(source, name, "Counter", labels, MetricLabelSet.DefaultLabelSet)
         {
         }
 
@@ -34,7 +34,7 @@ namespace OpenTelemetry.Metric.Api
         public void Add(int num)
         {
             // TODO: Do we need to support passing native numbers to SDK?
-            RecordMetricData(num, MetricLabelSet.DefaultLabel);
+            RecordMetricData(num, MetricLabelSet.DefaultLabelSet);
         }
 
         public void Add(int num, MetricLabelSet labels)
@@ -44,7 +44,7 @@ namespace OpenTelemetry.Metric.Api
 
         public void Add(double num)
         {
-            RecordMetricData(num, MetricLabelSet.DefaultLabel);
+            RecordMetricData(num, MetricLabelSet.DefaultLabelSet);
         }
 
         public void Add(double num, MetricLabelSet labels)

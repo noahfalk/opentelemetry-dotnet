@@ -7,22 +7,22 @@ namespace OpenTelemetry.Metric.Api
     public class Guage : MeterBase
     {
         public Guage(string name) 
-            : base(MetricSource.DefaultSource, name, "Guage", MetricLabelSet.DefaultLabel, MetricLabelSet.DefaultLabel)
+            : base(MetricSource.DefaultSource, name, "Guage", MetricLabelSet.DefaultLabelSet, MetricLabelSet.DefaultLabelSet)
         {
         }
 
         public Guage(string name, MetricLabelSet labels) 
-            : base(MetricSource.DefaultSource, name, "Guage", labels, MetricLabelSet.DefaultLabel)
+            : base(MetricSource.DefaultSource, name, "Guage", labels, MetricLabelSet.DefaultLabelSet)
         {
         }
 
         public Guage(MetricSource source, string name) 
-            : base(source, name, "Guage", MetricLabelSet.DefaultLabel, MetricLabelSet.DefaultLabel)
+            : base(source, name, "Guage", MetricLabelSet.DefaultLabelSet, MetricLabelSet.DefaultLabelSet)
         {
         }
 
         public Guage(MetricSource source, string name, MetricLabelSet labels) 
-            : base(source, name, "Guage", labels, MetricLabelSet.DefaultLabel)
+            : base(source, name, "Guage", labels, MetricLabelSet.DefaultLabelSet)
         {
         }
 
@@ -33,7 +33,7 @@ namespace OpenTelemetry.Metric.Api
 
         public void Record(int num)
         {
-            RecordMetricData(num, MetricLabelSet.DefaultLabel);
+            RecordMetricData(num, MetricLabelSet.DefaultLabelSet);
         }
 
         public void Record(int num, MetricLabelSet labels)
@@ -43,7 +43,7 @@ namespace OpenTelemetry.Metric.Api
 
         public void Record(double num)
         {
-            RecordMetricData(num, MetricLabelSet.DefaultLabel);
+            RecordMetricData(num, MetricLabelSet.DefaultLabelSet);
         }
 
         public void Record(double num, MetricLabelSet labels)

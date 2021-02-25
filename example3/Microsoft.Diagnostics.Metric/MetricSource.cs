@@ -58,11 +58,11 @@ namespace Microsoft.Diagnostics.Metric
             return listeners.TryRemove(KeyValuePair.Create(listener, desc));
         }
 
-        internal bool ReportCreate(MetricBase meter, MetricLabelSet labels)
+        internal bool ReportCreate(MetricBase meter)
         {
             foreach (var listener in listeners)
             {
-                listener.Key.OnCreate(this, meter, labels);
+                listener.Key.OnCreate(this, meter);
             }
 
             return true;

@@ -18,25 +18,23 @@ namespace Microsoft.Diagnostics.Metric
         private CancellationTokenSource tokenSrc = new();
 
         public LastVauleGauge(MetricSource source, string name, MetricLabelSet labels, MetricLabelSet hints)
-            : base(source, name, "LastValueGauge", labels, hints)
+            : base(source, name, "LastValueGauge", labels, AddDefaultHints(hints))
         {
             init(0, hints);
         }
 
         public LastVauleGauge(MetricSource source, string name, int periodInSeconds, MetricLabelSet labels, MetricLabelSet hints)
-            : base(source, name, "LastValueGauge", labels, hints)
+            : base(source, name, "LastValueGauge", labels, AddDefaultHints(hints))
         {
             init(Math.Max(periodInSeconds,1), hints);
         }
 
-        private void init(int periodInSeconds, MetricLabelSet hints)
+        private static MetricLabelSet AddDefaultHints(MetricLabelSet hints)
         {
-            this.periodInSeconds = periodInSeconds;
-            var token = tokenSrc.Token;
-
             // Add DefaultAggregator hints if does not exists
 
             var newHints = new List<(string name, string value)>();
+
             var foundDefaultAggregator = false;
             foreach (var hint in hints.GetLabels())
             {
@@ -47,11 +45,20 @@ namespace Microsoft.Diagnostics.Metric
 
                 newHints.Add(hint);
             }
+            
             if (!foundDefaultAggregator)
             {
                 newHints.Add(("DefaultAggregator", "LastValue"));
-                this.Hints = new MetricLabelSet(newHints.ToArray());
+                hints = new MetricLabelSet(newHints.ToArray());
             }
+
+            return hints;
+        }
+
+        private void init(int periodInSeconds, MetricLabelSet hints)
+        {
+            this.periodInSeconds = periodInSeconds;
+            var token = tokenSrc.Token;
 
             if (periodInSeconds > 0)
             {
@@ -133,11 +140,11 @@ namespace Microsoft.Diagnostics.Metric
             switch (status)
             {
                 case GaugeValueType.LongValue:
-                    RecordMetricData(lvalue, MetricLabelSet.DefaultLabel);
+                    RecordMetricData(lvalue, MetricLabelSet.DefaultLabelSet);
                     break;
 
                 case GaugeValueType.DoubleValue:
-                    RecordMetricData(dvalue, MetricLabelSet.DefaultLabel);
+                    RecordMetricData(dvalue, MetricLabelSet.DefaultLabelSet);
                     break;
 
                 default:

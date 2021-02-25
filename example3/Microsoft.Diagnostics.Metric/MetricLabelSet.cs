@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Metric
 
         private (string name, string value)[] labels = {};
 
-        static public MetricLabelSet DefaultLabel
+        static public MetricLabelSet DefaultLabelSet
         {
             get => defaultLabel;
         }
@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Metric
         /// </summary>
         public virtual (string name, string value)[] GetLabels()
         {
-            return labels;
+            return this.labels;
         }
     }
 }

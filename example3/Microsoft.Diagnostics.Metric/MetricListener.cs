@@ -8,7 +8,7 @@ namespace Microsoft.Diagnostics.Metric
         /// <summary>
         /// Let SDK know when new counters are being created
         /// </summary>
-        public abstract bool OnCreate(MetricSource source, MetricBase counter, MetricLabelSet labels);
+        public abstract bool OnCreate(MetricSource source, MetricBase counter);
 
         // TODO: Represent int/double as a generic class so we don't need two OnRecord() function
         // TODO: Need discussion of carrying native number or BOX up the number into generic class

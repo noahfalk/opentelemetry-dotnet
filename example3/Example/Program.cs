@@ -90,9 +90,9 @@ namespace Example
             }));
 
             taskList.Add(Task.Run(async () => {
-                var rate = new RateCounter(MetricSource.DefaultSource, "Rate", 1, MetricLabelSet.DefaultLabel, MetricLabelSet.DefaultLabel);
-                var sum = new SumCounter(MetricSource.DefaultSource, "Sum", 1, MetricLabelSet.DefaultLabel, MetricLabelSet.DefaultLabel);
-                var lastvalue = new LastVauleGauge(MetricSource.DefaultSource, "Last", 1, MetricLabelSet.DefaultLabel, MetricLabelSet.DefaultLabel);
+                var rate = new RateCounter(MetricSource.DefaultSource, "Rate", 1, MetricLabelSet.DefaultLabelSet, MetricLabelSet.DefaultLabelSet);
+                var sum = new SumCounter(MetricSource.DefaultSource, "Sum", 1, MetricLabelSet.DefaultLabelSet, MetricLabelSet.DefaultLabelSet);
+                var lastvalue = new LastVauleGauge(MetricSource.DefaultSource, "Last", 1, MetricLabelSet.DefaultLabelSet, MetricLabelSet.DefaultLabelSet);
 
                 while (!token.IsCancellationRequested)
                 {

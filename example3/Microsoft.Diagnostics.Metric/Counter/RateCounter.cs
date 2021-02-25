@@ -15,29 +15,10 @@ namespace Microsoft.Diagnostics.Metric
         private long lastTick;
 
         public RateCounter(MetricSource source, string name, int periodInSeconds, MetricLabelSet labels, MetricLabelSet hints)
-            : base(source, name, "RateCounter", labels, hints)
+            : base(source, name, "RateCounter", labels, AddDefaultHints(hints))
         {
             this.periodInSeconds = Math.Min(periodInSeconds, 1);
             var token = tokenSrc.Token;
-
-            // Add DefaultAggregator hints if does not exists
-
-            var newHints = new List<(string name, string value)>();
-            var foundDefaultAggregator = false;
-            foreach (var hint in hints.GetLabels())
-            {
-                if (hint.name == "DefaultAggregator")
-                {
-                    foundDefaultAggregator = true;
-                }
-
-                newHints.Add(hint);
-            }
-            if (!foundDefaultAggregator)
-            {
-                newHints.Add(("DefaultAggregator", "Histogram"));
-                this.Hints = new MetricLabelSet(newHints.ToArray());
-            }
 
             this.task = Task.Run(async () =>
             {
@@ -57,6 +38,32 @@ namespace Microsoft.Diagnostics.Metric
             });
 
             this.lastTick = DateTimeOffset.UtcNow.UtcTicks;
+        }
+
+        private static MetricLabelSet AddDefaultHints(MetricLabelSet hints)
+        {
+            // Add DefaultAggregator hints if does not exists
+
+            var newHints = new List<(string name, string value)>();
+
+            var foundDefaultAggregator = false;
+            foreach (var hint in hints.GetLabels())
+            {
+                if (hint.name == "DefaultAggregator")
+                {
+                    foundDefaultAggregator = true;
+                }
+
+                newHints.Add(hint);
+            }
+            
+            if (!foundDefaultAggregator)
+            {
+                newHints.Add(("DefaultAggregator", "Histogram"));
+                hints = new MetricLabelSet(newHints.ToArray());
+            }
+
+            return hints;
         }
 
         ~RateCounter()
@@ -81,7 +88,7 @@ namespace Microsoft.Diagnostics.Metric
                 long elapsed = curTick - lastTick;
 
                 double rate = (cnt * 100) / (elapsed / 100000);
-                RecordMetricData(rate, MetricLabelSet.DefaultLabel);
+                RecordMetricData(rate, MetricLabelSet.DefaultLabelSet);
             }
         }
     }
