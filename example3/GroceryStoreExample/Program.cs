@@ -1,6 +1,7 @@
 ﻿using System;
 using OpenTelemetry.Metric.Api;
 using OpenTelemetry.Metric.Sdk;
+using Microsoft.Diagnostics.Metric;
 
 namespace GroceryStoreExample
 {
@@ -13,10 +14,10 @@ namespace GroceryStoreExample
                 .Name("OrderPipeline1")
                 .AttachSource("StoreMetrics")
                 .AggregateByLabels(new SumCountMinMax(), 
-                    new LabelSet(("Customer", "*")),
-                    new LabelSet(("Item", "lemon,tomato")),
-                    new LabelSet(("Customer", "CustomerA,CustomerC"), ("Item", "*")),
-                    new LabelSet(("Store", "*"), ("Item", "*"))
+                    new MetricLabelSet(("Customer", "*")),
+                    new MetricLabelSet(("Item", "lemon,tomato")),
+                    new MetricLabelSet(("Customer", "CustomerA,CustomerC"), ("Item", "*")),
+                    new MetricLabelSet(("Store", "*"), ("Item", "*"))
                     )
                 .AggregateByLabels(new LabelHistogram())
                 .AddExporter(new ConsoleExporter("export1", 6000))

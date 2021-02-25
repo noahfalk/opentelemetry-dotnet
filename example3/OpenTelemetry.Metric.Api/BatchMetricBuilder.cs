@@ -13,9 +13,9 @@ namespace OpenTelemetry.Metric.Api
     public class BatchMetricBuilder
     {
         private List<Tuple<MetricBase, object>> batches = new();
-        private LabelSet labels;
+        private MetricLabelSet labels;
 
-        public BatchMetricBuilder(LabelSet labels)
+        public BatchMetricBuilder(MetricLabelSet labels)
         {
             this.labels = labels;
         }

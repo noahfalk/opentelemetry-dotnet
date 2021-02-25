@@ -18,11 +18,14 @@ namespace Microsoft.Diagnostics.Metric
 
         public bool Enabled { get; set; } = true;
 
-        protected MetricBase(MetricSource source, string name, string type, MetricLabelSet labels)
+        public MetricLabelSet Hints { get; protected set; }
+
+        protected MetricBase(MetricSource source, string name, string type, MetricLabelSet labels, MetricLabelSet hints)
         {
-            MetricName = name;
-            MetricType = type;
-            Labels = labels;
+            this.MetricName = name;
+            this.MetricType = type;
+            this.Labels = labels;
+            this.Hints = hints;
             this.source = source;
 
             // TODO: How to handle attach/detach of sources and listeners?

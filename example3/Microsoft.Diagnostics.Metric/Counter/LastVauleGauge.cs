@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,35 +17,61 @@ namespace Microsoft.Diagnostics.Metric
         private Task task;
         private CancellationTokenSource tokenSrc = new();
 
-        public LastVauleGauge(MetricSource source, string name, MetricLabelSet labels) 
-            : base(source, name, "LastValueGauge", labels)
+        public LastVauleGauge(MetricSource source, string name, MetricLabelSet labels, MetricLabelSet hints)
+            : base(source, name, "LastValueGauge", labels, hints)
         {
-            this.periodInSeconds = 0;
-            var token = tokenSrc.Token;
+            init(0, hints);
         }
 
-        public LastVauleGauge(MetricSource source, string name, int periodInSeconds, MetricLabelSet labels) 
-            : base(source, name, "LastValueGauge", labels)
+        public LastVauleGauge(MetricSource source, string name, int periodInSeconds, MetricLabelSet labels, MetricLabelSet hints)
+            : base(source, name, "LastValueGauge", labels, hints)
         {
-            this.periodInSeconds = Math.Min(periodInSeconds, 1);
+            init(Math.Max(periodInSeconds,1), hints);
+        }
+
+        private void init(int periodInSeconds, MetricLabelSet hints)
+        {
+            this.periodInSeconds = periodInSeconds;
             var token = tokenSrc.Token;
 
-            this.task = Task.Run(async () =>
-            {
-                while (!token.IsCancellationRequested)
-                {
-                    try
-                    {
-                        await Task.Delay(this.periodInSeconds * 1000, token);
-                    }
-                    catch (TaskCanceledException)
-                    {
-                        // Do Nothing
-                    }
+            // Add DefaultAggregator hints if does not exists
 
-                    this.Flush();
+            var newHints = new List<(string name, string value)>();
+            var foundDefaultAggregator = false;
+            foreach (var hint in hints.GetLabels())
+            {
+                if (hint.name == "DefaultAggregator")
+                {
+                    foundDefaultAggregator = true;
                 }
-            });
+
+                newHints.Add(hint);
+            }
+            if (!foundDefaultAggregator)
+            {
+                newHints.Add(("DefaultAggregator", "LastValue"));
+                this.Hints = new MetricLabelSet(newHints.ToArray());
+            }
+
+            if (periodInSeconds > 0)
+            {
+                this.task = Task.Run(async () =>
+                {
+                    while (!token.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            await Task.Delay(this.periodInSeconds * 1000, token);
+                        }
+                        catch (TaskCanceledException)
+                        {
+                            // Do Nothing
+                        }
+
+                        this.Flush();
+                    }
+                });
+            }
         }
 
         ~LastVauleGauge()

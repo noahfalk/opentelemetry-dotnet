@@ -4,6 +4,7 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Engines;
 
+using Microsoft.Diagnostics.Metric;
 using OpenTelemetry.Metric.Api;
 using OpenTelemetry.Metric.Sdk;
 
@@ -32,14 +33,14 @@ namespace MyBenchmark
             |  LabelSet_enumArray |   0.5445 ns |  0.0719 ns |  0.0828 ns |      - |     - |     - |         - |
         */
 
-        LabelSet ls;
+        MetricLabelSet ls;
 
         IDictionary<string,string> dict;
 
         [GlobalSetup]
         public void Setup()
         {
-            ls = new LabelSet(
+            ls = new MetricLabelSet(
                 ("Key1", "Value1"),
                 ("Key2", "Value2"),
                 ("Key3", "Value3"),
@@ -117,9 +118,9 @@ namespace MyBenchmark
         //****************
 
         [Benchmark]
-        public LabelSet LabelSet_new()
+        public MetricLabelSet MetricLabelSet_new()
         {
-            return new LabelSet(
+            return new MetricLabelSet(
                 ("Key1", "Value1"),
                 ("Key2", "Value2"),
                 ("Key3", "Value3"),
@@ -133,7 +134,7 @@ namespace MyBenchmark
         }
 
         [Benchmark]
-        public List<(string,string)> LabelSet_enum()
+        public List<(string,string)> MetricLabelSet_enum()
         {
             List<(string,string)> ret = new();
 
@@ -147,7 +148,7 @@ namespace MyBenchmark
         }
 
         [Benchmark]
-        public (string name, string value)[] LabelSet_enumArray()
+        public (string name, string value)[] MetricLabelSet_enumArray()
         {
             return ls.GetLabels();
         }

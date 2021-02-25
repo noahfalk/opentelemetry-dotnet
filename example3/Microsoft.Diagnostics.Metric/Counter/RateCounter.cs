@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,11 +14,30 @@ namespace Microsoft.Diagnostics.Metric
 
         private long lastTick;
 
-        public RateCounter(MetricSource source, string name, int periodInSeconds, MetricLabelSet labels) 
-            : base(source, name, "RateCounter", labels)
+        public RateCounter(MetricSource source, string name, int periodInSeconds, MetricLabelSet labels, MetricLabelSet hints)
+            : base(source, name, "RateCounter", labels, hints)
         {
             this.periodInSeconds = Math.Min(periodInSeconds, 1);
             var token = tokenSrc.Token;
+
+            // Add DefaultAggregator hints if does not exists
+
+            var newHints = new List<(string name, string value)>();
+            var foundDefaultAggregator = false;
+            foreach (var hint in hints.GetLabels())
+            {
+                if (hint.name == "DefaultAggregator")
+                {
+                    foundDefaultAggregator = true;
+                }
+
+                newHints.Add(hint);
+            }
+            if (!foundDefaultAggregator)
+            {
+                newHints.Add(("DefaultAggregator", "Histogram"));
+                this.Hints = new MetricLabelSet(newHints.ToArray());
+            }
 
             this.task = Task.Run(async () =>
             {

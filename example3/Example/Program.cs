@@ -39,16 +39,14 @@ namespace Example
 
                 // Configure what Labels are important
                 .AggregateByLabels(new SumCountMinMax(), 
-                    new LabelSet(
+                    new MetricLabelSet(
                         ("LibraryInstanceName", "*")),
-                    new LabelSet(
+                    new MetricLabelSet(
                         ("LibraryInstanceName", "*"), 
                         ("Mode", "*")),
-                    new LabelSet(
+                    new MetricLabelSet(
                         ("OperName", "*"), 
                         ("Mode", "Batch")))
-
-                .AggregateByLabels(new LastValueAggregator())
 
                 .AddExporter(new ConsoleExporter("export1", 6000))
 
@@ -92,9 +90,9 @@ namespace Example
             }));
 
             taskList.Add(Task.Run(async () => {
-                var rate = new RateCounter(MetricSource.DefaultSource, "Rate", 1, MetricLabelSet.DefaultLabel);
-                var sum = new SumCounter(MetricSource.DefaultSource, "Sum", 1, MetricLabelSet.DefaultLabel);
-                var lastvalue = new LastVauleGauge(MetricSource.DefaultSource, "Last", 1, MetricLabelSet.DefaultLabel);
+                var rate = new RateCounter(MetricSource.DefaultSource, "Rate", 1, MetricLabelSet.DefaultLabel, MetricLabelSet.DefaultLabel);
+                var sum = new SumCounter(MetricSource.DefaultSource, "Sum", 1, MetricLabelSet.DefaultLabel, MetricLabelSet.DefaultLabel);
+                var lastvalue = new LastVauleGauge(MetricSource.DefaultSource, "Last", 1, MetricLabelSet.DefaultLabel, MetricLabelSet.DefaultLabel);
 
                 while (!token.IsCancellationRequested)
                 {

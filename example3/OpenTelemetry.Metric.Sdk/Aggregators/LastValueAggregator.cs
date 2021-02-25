@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Microsoft.Diagnostics.Metric;
 using OpenTelemetry.Metric.Api;
 using OpenTelemetry.Metric.Sdk;
@@ -21,6 +22,7 @@ namespace OpenTelemetry.Metric.Sdk
         private GaugeValueType status = GaugeValueType.Empty;
         private long lvalue = 0;
         private double dvalue = 0.0;
+        private long count = 0;
 
         public override void Update<T>(MetricBase meter, T value, MetricLabelSet labels)
         {
@@ -48,6 +50,7 @@ namespace OpenTelemetry.Metric.Sdk
                     this.status = GaugeValueType.DoubleValue;
                 }
             }
+            Interlocked.Increment(ref this.count);
         }
 
         public override (string key, string value)[] Serialize()
@@ -83,6 +86,7 @@ namespace OpenTelemetry.Metric.Sdk
             return new (string key, string value)[]
             {
                 ( "last", $"{val}" ),
+                ( "count", $"{this.count}" ),
             };
         }
 

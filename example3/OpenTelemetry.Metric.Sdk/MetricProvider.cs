@@ -209,14 +209,10 @@ namespace OpenTelemetry.Metric.Sdk
             // Get Hints
 
             Dictionary<string,string> hints = new();
-
-            if (meter is MeterBase otelmeter)
+            var hintLabels = meter.Hints.GetLabels();
+            foreach (var label in hintLabels)
             {
-                var hintLabels = otelmeter.Hints.GetLabels();
-                foreach (var label in hintLabels)
-                {
-                    hints[label.name] = label.value;
-                }
+                hints[label.name] = label.value;
             }
 
             // Determine how to expand into different aggregates instances
@@ -224,11 +220,27 @@ namespace OpenTelemetry.Metric.Sdk
             List<(string labelKey, Aggregator aggregator)> label_aggregates = new();
 
             // TODO: Use Meter.Hints to determine how to expand labels...
+
+            Aggregator defaultAgg;
             var defaultAggType = hints.GetValueOrDefault("DefaultAggregator", "Sum");
-            Aggregator defaultAgg = 
-                defaultAggType == "Sum" ? new SumCountMinMax()
-                : defaultAggType == "Histogram" ? new LabelHistogram()
-                : new SumCountMinMax();
+            switch (defaultAggType)
+            {
+                case "Sum":
+                    defaultAgg = new SumCountMinMax();
+                    break;
+
+                case "LastValue":
+                    defaultAgg = new LastValueAggregator();
+                    break;
+
+                case "Histogram":
+                    defaultAgg = new LabelHistogram();
+                    break;
+
+                default:
+                    defaultAgg = new SumCountMinMax();
+                    break;
+            }
             var defaultAggName = defaultAgg.GetType().Name;
 
             // Meter for total (dropping all labels)
