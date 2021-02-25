@@ -219,31 +219,31 @@ namespace OpenTelemetry.Metric.Sdk
 
             List<(string labelKey, Aggregator aggregator)> label_aggregates = new();
 
-            // TODO: Use Meter.Hints to determine how to expand labels...
+            // Use Hints for default aggregator for _Total
 
-            Aggregator defaultAgg;
-            var defaultAggType = hints.GetValueOrDefault("DefaultAggregator", "Sum");
-            switch (defaultAggType)
+            Aggregator defaultAgg = default;
+            try
             {
-                case "Sum":
-                    defaultAgg = new SumCountMinMax();
-                    break;
+                var defaultType = typeof(LastValueAggregator);
+                var defaultNamespace = defaultType.Namespace;
+                var defaultName = hints.GetValueOrDefault("DefaultAggregator", defaultType.Name);
 
-                case "LastValue":
-                    defaultAgg = new LastValueAggregator();
-                    break;
-
-                case "Histogram":
-                    defaultAgg = new LabelHistogram();
-                    break;
-
-                default:
-                    defaultAgg = new SumCountMinMax();
-                    break;
+                var aggType = Type.GetType($"{defaultNamespace}.{defaultName}");
+                var obj = Activator.CreateInstance(aggType);
+                defaultAgg = obj as Aggregator;
             }
-            var defaultAggName = defaultAgg.GetType().Name;
+            catch (Exception)
+            {
+                // Do Nothing
+            }
+
+            if (defaultAgg is null)
+            {
+                defaultAgg = new LastValueAggregator();
+            }
 
             // Meter for total (dropping all labels)
+            var defaultAggName = defaultAgg.GetType().Name;
             label_aggregates.Add(($"{qualifiedName}/{defaultAggName}/_Total", defaultAgg));
 
             // Meter for each configured dimension

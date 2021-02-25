@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Metric
         private CancellationTokenSource tokenSrc = new();
 
         public SumCounter(MetricSource source, string name, int periodInSeconds, MetricLabelSet labels, MetricLabelSet hints)
-            : base(source, name, "SumCounter", labels, AddDefaultHints(hints))
+            : base(source, name, nameof(SumCounter), labels, AddDefaultHints(hints))
         {
             this.periodInSeconds = Math.Min(periodInSeconds, 1);
             var token = tokenSrc.Token;
@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Metric
             // Add DefaultAggregator hints if does not exists
 
             var newHints = new List<(string name, string value)>();
-            
+
             var foundDefaultAggregator = false;
             foreach (var hint in hints.GetLabels())
             {
@@ -61,7 +61,7 @@ namespace Microsoft.Diagnostics.Metric
 
             if (!foundDefaultAggregator)
             {
-                newHints.Add(("DefaultAggregator", "Sum"));
+                newHints.Add(("DefaultAggregator", "SumCountMinMax"));
                 hints = new MetricLabelSet(newHints.ToArray());
             }
 

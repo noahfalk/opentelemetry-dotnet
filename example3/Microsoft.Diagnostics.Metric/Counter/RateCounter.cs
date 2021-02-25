@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Metric
         private long lastTick;
 
         public RateCounter(MetricSource source, string name, int periodInSeconds, MetricLabelSet labels, MetricLabelSet hints)
-            : base(source, name, "RateCounter", labels, AddDefaultHints(hints))
+            : base(source, name, nameof(RateCounter), labels, AddDefaultHints(hints))
         {
             this.periodInSeconds = Math.Min(periodInSeconds, 1);
             var token = tokenSrc.Token;
@@ -56,10 +56,10 @@ namespace Microsoft.Diagnostics.Metric
 
                 newHints.Add(hint);
             }
-            
+
             if (!foundDefaultAggregator)
             {
-                newHints.Add(("DefaultAggregator", "Histogram"));
+                newHints.Add(("DefaultAggregator", "LabelHistogram"));
                 hints = new MetricLabelSet(newHints.ToArray());
             }
 

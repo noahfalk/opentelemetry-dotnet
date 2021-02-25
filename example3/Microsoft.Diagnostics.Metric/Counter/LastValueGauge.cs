@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Metric
 {
-    public class LastVauleGauge : MetricBase
+    public class LastValueGauge : MetricBase
     {
         private static readonly object lockValues = new();
 
@@ -17,14 +17,14 @@ namespace Microsoft.Diagnostics.Metric
         private Task task;
         private CancellationTokenSource tokenSrc = new();
 
-        public LastVauleGauge(MetricSource source, string name, MetricLabelSet labels, MetricLabelSet hints)
-            : base(source, name, "LastValueGauge", labels, AddDefaultHints(hints))
+        public LastValueGauge(MetricSource source, string name, MetricLabelSet labels, MetricLabelSet hints)
+            : base(source, name, nameof(LastValueGauge), labels, AddDefaultHints(hints))
         {
             init(0, hints);
         }
 
-        public LastVauleGauge(MetricSource source, string name, int periodInSeconds, MetricLabelSet labels, MetricLabelSet hints)
-            : base(source, name, "LastValueGauge", labels, AddDefaultHints(hints))
+        public LastValueGauge(MetricSource source, string name, int periodInSeconds, MetricLabelSet labels, MetricLabelSet hints)
+            : base(source, name, nameof(LastValueGauge), labels, AddDefaultHints(hints))
         {
             init(Math.Max(periodInSeconds,1), hints);
         }
@@ -45,10 +45,10 @@ namespace Microsoft.Diagnostics.Metric
 
                 newHints.Add(hint);
             }
-            
+
             if (!foundDefaultAggregator)
             {
-                newHints.Add(("DefaultAggregator", "LastValue"));
+                newHints.Add(("DefaultAggregator", "LastValueAggregator"));
                 hints = new MetricLabelSet(newHints.ToArray());
             }
 
@@ -81,7 +81,7 @@ namespace Microsoft.Diagnostics.Metric
             }
         }
 
-        ~LastVauleGauge()
+        ~LastValueGauge()
         {
             tokenSrc.Cancel();
             if (task is not null)
