@@ -18,6 +18,7 @@ namespace OpenTelemetry.Metric.Sdk
 
     public class ExportItem
     {
+        public DateTimeOffset dt { get; set; }
         public string ProviderName { get; set; }
         public string MeterName { get; set; }
         public string InstrumentName { get; set; }

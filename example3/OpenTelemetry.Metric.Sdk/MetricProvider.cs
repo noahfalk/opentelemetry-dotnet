@@ -368,6 +368,7 @@ namespace OpenTelemetry.Metric.Sdk
                 foreach (var kv in oldAggStates)
                 {
                     var item = new ExportItem();
+                    item.dt = DateTimeOffset.UtcNow;
                     item.ProviderName = name;
                     item.MeterName = kv.Key.ns;
                     item.InstrumentName = kv.Key.name;

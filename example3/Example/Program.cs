@@ -49,9 +49,8 @@ namespace Example
                         ("OperName", "*"), 
                         ("Mode", "Batch")))
 
-                .AddExporter(new ConsoleExporter("export1", 6000))
-
-                //.AddExporter(new OTLPExporter(3000))
+                //.AddExporter(new ConsoleExporter("export1", 6000))
+                .AddExporter(new OTLPExporter(3000))
 
                 // Finalize pipeline
                 .Build()

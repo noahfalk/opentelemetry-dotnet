@@ -15,6 +15,8 @@ namespace Microsoft.OpenTelemetry.Export
         private ConcurrentQueue<ExportItem> queue = new();
         private int periodMilli;
 
+        private ProtoBufClient client = new();
+
         public OTLPExporter(int periodMilli)
         {
             this.periodMilli = periodMilli;
@@ -87,34 +89,13 @@ namespace Microsoft.OpenTelemetry.Export
             {
                 Console.WriteLine($"{group.k.MeterName}.{group.k.InstrumentName} [Kind={group.k.InstrumentType}] [Provider={group.k.ProviderName}]");
 
-                var items = new List<string>();
-
                 foreach (var q in group.v)
                 {
-                    var aggdata = q.AggData.Select(k => $"{k.name}={k.value}");
-                    var dim = String.Join( " | ", q.Labels.GetLabels().Select(k => $"{k.name}={k.value}"));
-                    if (dim == "")
-                    {
-                        dim = "{_Total}";
-                    }
-                    items.Add($"    {dim}{Environment.NewLine}" +
-                        $"        {q.AggType}: {String.Join("|", aggdata)}");
-                }
+                    var payload = client.Send(q);
 
-                items.Sort();
-                foreach (var item in items)
-                {
-                    Console.WriteLine(item);
+                    client.Receive(payload);
                 }
             }
-
-            // foreach (var q in que)
-            // {
-            //     var aggdata = q.AggData.Select(k => $"{k.name}={k.value}");
-            //     var dim = String.Join( " | ", q.Labels.GetLabels().Select(k => $"{k.name}={k.value}"));
-            //     Console.WriteLine($"    {q.ProviderName} {q.MeterName} {q.InstrumentType} {q.InstrumentName} | {dim}{Environment.NewLine}" +
-            //         $"        {q.AggType}: {String.Join("|", aggdata)}");
-            // }
         }
     }
 }
