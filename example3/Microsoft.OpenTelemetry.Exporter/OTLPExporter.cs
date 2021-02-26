@@ -5,19 +5,18 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
 using OpenTelemetry.Metric.Api;
+using OpenTelemetry.Metric.Sdk;
 
-namespace OpenTelemetry.Metric.Sdk
+namespace Microsoft.OpenTelemetry.Export
 {
-    public class ConsoleExporter : Exporter
+    public class OTLPExporter : Exporter
     {
         private Task exportTask;
         private ConcurrentQueue<ExportItem> queue = new();
-        private string name;
         private int periodMilli;
 
-        public ConsoleExporter(string name, int periodMilli)
+        public OTLPExporter(int periodMilli)
         {
-            this.name = name;
             this.periodMilli = periodMilli;
         }
 
@@ -55,7 +54,7 @@ namespace OpenTelemetry.Metric.Sdk
 
         public void Process()
         {
-            Console.WriteLine($"ConsoleExporter [{this.name}]...");
+            Console.WriteLine("OTLP Exporter...");
 
             var que = Interlocked.Exchange(ref queue, new ConcurrentQueue<ExportItem>());
 

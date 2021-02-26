@@ -62,8 +62,7 @@ namespace Microsoft.Diagnostics.Metric
 
             if (periodInSeconds > 0)
             {
-                this.task = Task.Run(async () =>
-                {
+                this.task = Task.Run(async () => {
                     while (!token.IsCancellationRequested)
                     {
                         try

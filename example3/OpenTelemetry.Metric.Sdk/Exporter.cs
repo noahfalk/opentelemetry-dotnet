@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Diagnostics.Metric;
 
 namespace OpenTelemetry.Metric.Sdk
 {
@@ -15,7 +16,14 @@ namespace OpenTelemetry.Metric.Sdk
         public abstract void Stop();
     }
 
-    public abstract class ExportItem
+    public class ExportItem
     {
+        public string ProviderName { get; set; }
+        public string MeterName { get; set; }
+        public string InstrumentName { get; set; }
+        public string InstrumentType { get; set; }
+        public MetricLabelSet Labels { get; set; }
+        public string AggType { get; set; }
+        public (string name, string value)[] AggData { get; set; }
     }
 }

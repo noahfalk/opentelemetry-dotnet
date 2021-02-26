@@ -15,7 +15,7 @@ namespace OpenTelemetry.Metric.Sdk
         private readonly object lockMeters = new();
         private List<MeterBase> meters = new();
 
-        private ConcurrentDictionary<string, AggregatorState> aggregateDict = new();
+        private ConcurrentDictionary<AggregatorKey, AggregatorState> aggregateDict = new();
 
         private string name;
         private int collectPeriod_ms = 2000;
@@ -178,7 +178,7 @@ namespace OpenTelemetry.Metric.Sdk
             }
         }
 
-        private List<(string labelKey, Aggregator agg)> ExpandLabels(MetricBase meter, MetricLabelSet labels)
+        private List<(AggregatorKey aggKey, Aggregator agg)> ExpandLabels(MetricBase meter, MetricLabelSet labels)
         {
             var ns = meter.source.Name;
             var name = meter.MetricName;
@@ -188,7 +188,7 @@ namespace OpenTelemetry.Metric.Sdk
 
             // TODO: Find a more performant way to avoid string interpolation.  Maybe class for segmented string list.  Reuse Labelset?
 
-            var qualifiedName = ($"{ns}/{type}/{name}");
+            var qualifiedNameXXX = ($"{ns}/{type}/{name}");
 
             // Merge Bound and Ad-Hoc labels into one
 
@@ -217,7 +217,7 @@ namespace OpenTelemetry.Metric.Sdk
 
             // Determine how to expand into different aggregates instances
 
-            List<(string labelKey, Aggregator aggregator)> label_aggregates = new();
+            List<(AggregatorKey aggKey, Aggregator aggregator)> label_aggregates = new();
 
             // Use Hints for default aggregator for _Total
 
@@ -244,7 +244,8 @@ namespace OpenTelemetry.Metric.Sdk
 
             // Meter for total (dropping all labels)
             var defaultAggName = defaultAgg.GetType().Name;
-            label_aggregates.Add(($"{qualifiedName}/{defaultAggName}/_Total", defaultAgg));
+            var aggKey = new AggregatorKey(ns, name, type, defaultAggName, MetricLabelSet.DefaultLabelSet);
+            label_aggregates.Add((aggKey, defaultAgg));
 
             // Meter for each configured dimension
             foreach (var aggSet in aggregateByLabelSet)
@@ -285,14 +286,17 @@ namespace OpenTelemetry.Metric.Sdk
                     if (paths.Count() > 0)
                     {
                         paths.Sort();
-                        var dim = String.Join("/", paths);
-                        label_aggregates.Add(($"{qualifiedName}/{aggName}/{dim}", agg));
+                        var dimLabels = new MetricLabelSet(paths.Select(k => {
+                            var kv = k.Split("=");
+                            return (kv[0], kv[1]);
+                        }).ToArray());
+                        label_aggregates.Add((new AggregatorKey(ns, name, type, aggName, dimLabels), agg));
                     }
                 }
 
                 if (aggSet.labels.Length == 0)
                 {
-                    label_aggregates.Add(($"{qualifiedName}/{aggName}/_Total", agg));
+                    label_aggregates.Add((new AggregatorKey(ns, name, type, aggName, MetricLabelSet.DefaultLabelSet), agg));
                 }
             }
 
@@ -303,11 +307,11 @@ namespace OpenTelemetry.Metric.Sdk
 
                 if (filter.Item1 == "Include")
                 {
-                    label_aggregates = label_aggregates.Where((k) => k.Item1.Contains(filter.Item2)).ToList();
+                    label_aggregates = label_aggregates.Where((k) => k.aggKey.name.Contains(filter.Item2)).ToList();
                 }
                 else
                 {
-                    label_aggregates = label_aggregates.Where((k) => !k.Item1.Contains(filter.Item2)).ToList();
+                    label_aggregates = label_aggregates.Where((k) => !k.aggKey.name.Contains(filter.Item2)).ToList();
                 }
             }
 
@@ -335,10 +339,10 @@ namespace OpenTelemetry.Metric.Sdk
                 foreach (var kv in label_aggregates)
                 {
                     AggregatorState aggState;
-                    if (!aggregateDict.TryGetValue(kv.labelKey, out aggState))
+                    if (!aggregateDict.TryGetValue(kv.aggKey, out aggState))
                     {
                         aggState = kv.agg.CreateState();
-                        aggregateDict[kv.labelKey] = aggState;
+                        aggregateDict[kv.aggKey] = aggState;
                     }
 
                     aggState.Update(meter, value, labels);
@@ -358,34 +362,24 @@ namespace OpenTelemetry.Metric.Sdk
 
             if (isBuilt)
             {
-                List<string> exports = new();
-
                 // Reset all aggregate states!
-                var oldAggStates = Interlocked.Exchange(ref aggregateDict, new ConcurrentDictionary<string, AggregatorState>());
+                var oldAggStates = Interlocked.Exchange(ref aggregateDict, new ConcurrentDictionary<AggregatorKey, AggregatorState>());
 
                 foreach (var kv in oldAggStates)
                 {
-                    StringBuilder sb = new StringBuilder();
-
-                    sb.AppendLine($"{name}: {kv.Key}");
-
-                    sb.Append($"    {kv.Value.GetType().Name}: ");
-
-                    var data = kv.Value.Serialize();
-                    var details = String.Join(", ", data.Select(x => $"{x.key}={x.value}"));
-                    sb.AppendLine(details);
-
-                    exports.Add(sb.ToString());
-                }
-
-                exports.Sort();
-                foreach (var item in exports)
-                {
-                    ret.Add(new StringExportItem(item));
+                    var item = new ExportItem();
+                    item.ProviderName = name;
+                    item.MeterName = kv.Key.ns;
+                    item.InstrumentName = kv.Key.name;
+                    item.InstrumentType = kv.Key.type;
+                    item.Labels = kv.Key.labels;
+                    item.AggType = kv.Key.aggType;
+                    item.AggData = kv.Value.Serialize();
+                    ret.Add(item);
                 }
             }
 
             return ret.ToArray();
         }
-   }
+    }
 }

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using MyLibrary;
 using Microsoft.Diagnostics.Metric;
+using Microsoft.OpenTelemetry.Export;
 using OpenTelemetry.Metric.Api;
 using OpenTelemetry.Metric.Sdk;
 
@@ -49,6 +50,8 @@ namespace Example
                         ("Mode", "Batch")))
 
                 .AddExporter(new ConsoleExporter("export1", 6000))
+
+                //.AddExporter(new OTLPExporter(3000))
 
                 // Finalize pipeline
                 .Build()

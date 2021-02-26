@@ -85,8 +85,8 @@ namespace OpenTelemetry.Metric.Sdk
 
             return new (string key, string value)[]
             {
-                ( "last", $"{val}" ),
                 ( "count", $"{this.count}" ),
+                ( "last", $"{val}" ),
             };
         }
 

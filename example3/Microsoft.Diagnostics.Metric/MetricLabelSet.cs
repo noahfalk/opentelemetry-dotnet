@@ -1,8 +1,9 @@
 using System;
+using System.Linq;
 
 namespace Microsoft.Diagnostics.Metric
 {
-    public class MetricLabelSet
+    public class MetricLabelSet : IEquatable<MetricLabelSet>
     {
         static private (string name, string value)[] emptyLabel = {};
         
@@ -31,6 +32,59 @@ namespace Microsoft.Diagnostics.Metric
         public virtual (string name, string value)[] GetLabels()
         {
             return this.labels;
+        }
+
+        public bool Equals(MetricLabelSet other)
+        {
+            if (this.labels.Length != other.labels.Length)
+            {
+                return false;
+            }
+
+            var len = this.labels.Length;
+            for (var i = 0; i < len; i++)
+            {
+                if (this.labels[i].name != other.labels[i].name)
+                {
+                    return false;
+                }
+
+                if (this.labels[i].value != other.labels[i].value)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public override bool Equals(Object obj)
+        {
+            if (obj is MetricLabelSet other)
+            {
+                return this.Equals(other);
+            }
+            
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            HashCode hash = new HashCode();
+
+            foreach (var l in labels)
+            {
+                hash.Add(l.name);
+                hash.Add(l.value);
+            }
+            
+            return hash.ToHashCode();
+        }
+
+        public override string ToString()
+        {
+            var items = labels.Select(k => $"{k.name}={k.value}");
+            return String.Join(";", items);
         }
     }
 }

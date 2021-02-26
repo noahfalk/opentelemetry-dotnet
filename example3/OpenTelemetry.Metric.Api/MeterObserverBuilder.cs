@@ -30,20 +30,18 @@ namespace OpenTelemetry.Metric.Api
         public Task Run(CancellationToken token)
         {
             return Task.Run(async () => {
-                try
+                while (!token.IsCancellationRequested)
                 {
-                    await Task.Delay(period, token);
-
-                    while (!token.IsCancellationRequested)
+                    try
                     {
-                        RunObserver();
-                        
                         await Task.Delay(period, token);
                     }
-                }
-                catch (TaskCanceledException)
-                {
-                    // Ignore
+                    catch (TaskCanceledException)
+                    {
+                        // Do Nothing
+                    }
+
+                    RunObserver();
                 }
             });
         }

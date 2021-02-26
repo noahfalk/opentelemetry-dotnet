@@ -20,8 +20,7 @@ namespace Microsoft.Diagnostics.Metric
             this.periodInSeconds = Math.Min(periodInSeconds, 1);
             var token = tokenSrc.Token;
 
-            this.task = Task.Run(async () =>
-            {
+            this.task = Task.Run(async () => {
                 while (!token.IsCancellationRequested)
                 {
                     try

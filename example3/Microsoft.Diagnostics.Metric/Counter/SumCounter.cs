@@ -24,8 +24,7 @@ namespace Microsoft.Diagnostics.Metric
             this.periodInSeconds = Math.Min(periodInSeconds, 1);
             var token = tokenSrc.Token;
 
-            this.task = Task.Run(async () =>
-            {
+            this.task = Task.Run(async () => {
                 while (!token.IsCancellationRequested)
                 {
                     try
@@ -78,7 +77,7 @@ namespace Microsoft.Diagnostics.Metric
         {
             if (delta is int ival)
             {
-                Interlocked.Add(ref lsum, (long) ival);
+                Interlocked.Add(ref lsum, (long)ival);
                 Interlocked.Increment(ref lcount);
             }
             else if (delta is long lval)
