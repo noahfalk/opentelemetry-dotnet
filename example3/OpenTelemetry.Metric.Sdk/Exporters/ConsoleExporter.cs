@@ -60,7 +60,7 @@ namespace OpenTelemetry.Metric.Sdk
             var que = Interlocked.Exchange(ref queue, new ConcurrentQueue<ExportItem>());
 
             var groups = que.GroupBy(
-                k => (k.ProviderName, k.MeterName, k.InstrumentType, k.InstrumentName), 
+                k => (k.ProviderName, k.MeterName, k.MeterVersion, k.InstrumentType, k.InstrumentName), 
                 v => v,
                 (k,v) => (k,v)
                 );
@@ -86,7 +86,7 @@ namespace OpenTelemetry.Metric.Sdk
 
             foreach (var group in sortedList)
             {
-                Console.WriteLine($"{group.k.MeterName}.{group.k.InstrumentName} [Kind={group.k.InstrumentType}] [Provider={group.k.ProviderName}]");
+                Console.WriteLine($"{group.k.MeterName}|{group.k.MeterVersion}|{group.k.InstrumentName} [Kind={group.k.InstrumentType}] [Provider={group.k.ProviderName}]");
 
                 var items = new List<string>();
 

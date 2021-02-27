@@ -7,13 +7,15 @@ namespace Microsoft.Diagnostics.Metric
     public sealed class MetricSource
     {
         // singleton Default Source
-        private static MetricSource default_source = new MetricSource("DefaultSource");
+        private static MetricSource default_source = new MetricSource("DefaultSource", "1.0.0");
 
         // Global list of all sources
-        private static ConcurrentDictionary<string,MetricSource> source_registry = new();
+        private static ConcurrentDictionary<(string name, string version), MetricSource> source_registry = new();
 
         // Name of this source
         public string Name { get; }
+
+        public string Version { get; }
 
         // Allow users to associate their context
         public object UserContext { get; set; }
@@ -22,9 +24,10 @@ namespace Microsoft.Diagnostics.Metric
         // Note: Value portion of Dictionary is user supplied description
         private ConcurrentDictionary<MetricListener, string> listeners = new();
 
-        private MetricSource(string name)
+        private MetricSource(string name, string version)
         {
             this.Name = name;
+            this.Version = version;
         }
 
         public static MetricSource DefaultSource
@@ -32,14 +35,27 @@ namespace Microsoft.Diagnostics.Metric
             get => default_source;
         }
 
-        public static ICollection<string> Sources
+        public static ICollection<(string name, string version)> Sources
         {
             get => source_registry.Keys;
         }
 
         public static MetricSource GetSource(string name)
         {
-            return source_registry.GetOrAdd(name, (k) => new MetricSource(k));
+            foreach (var reg in source_registry)
+            {
+                if (reg.Key.name == name)
+                {
+                    return reg.Value;
+                }
+            }
+
+            return source_registry.GetOrAdd((name, "*"), (k) => new MetricSource(k.name, k.version));
+        }
+
+        public static MetricSource GetSource(string name, string version)
+        {
+            return source_registry.GetOrAdd((name, version), (k) => new MetricSource(k.name, k.version));
         }
 
         public ICollection<MetricListener> Listeners

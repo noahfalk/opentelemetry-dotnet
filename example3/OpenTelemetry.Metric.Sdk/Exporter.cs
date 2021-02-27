@@ -21,6 +21,7 @@ namespace OpenTelemetry.Metric.Sdk
         public DateTimeOffset dt { get; set; }
         public string ProviderName { get; set; }
         public string MeterName { get; set; }
+        public string MeterVersion { get; set; }
         public string InstrumentName { get; set; }
         public string InstrumentType { get; set; }
         public MetricLabelSet Labels { get; set; }

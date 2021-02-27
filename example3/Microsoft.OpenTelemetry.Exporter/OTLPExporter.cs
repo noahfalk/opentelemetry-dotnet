@@ -14,11 +14,17 @@ namespace Microsoft.OpenTelemetry.Export
         private Task exportTask;
         private ConcurrentQueue<ExportItem> queue = new();
         private int periodMilli;
+        private int batchSize;
 
         private ProtoBufClient client = new();
 
-        public OTLPExporter(int periodMilli)
+        private ConcurrentQueue<byte[]> cloud = new();
+        private Task receiveTask;
+        private CancellationTokenSource receiveTokenSrc = new();
+
+        public OTLPExporter(int batchSize, int periodMilli)
         {
+            this.batchSize = batchSize;
             this.periodMilli = periodMilli;
         }
 
@@ -47,54 +53,56 @@ namespace Microsoft.OpenTelemetry.Export
                     Process();
                 }
             });
+
+            receiveTask = Task.Run(async () => await ReceiveTask(receiveTokenSrc.Token));
         }
 
         public override void Stop()
         {
             exportTask.Wait();
+            
+            receiveTokenSrc.Cancel();
+            receiveTask.Wait();
         }
 
         public void Process()
         {
-            Console.WriteLine("OTLP Exporter...");
-
             var que = Interlocked.Exchange(ref queue, new ConcurrentQueue<ExportItem>());
 
-            var groups = que.GroupBy(
-                k => (k.ProviderName, k.MeterName, k.InstrumentType, k.InstrumentName), 
-                v => v,
-                (k,v) => (k,v)
-                );
+            // Batch it up
 
-            var sortedList = groups.ToList();
-            sortedList.Sort((x,y) => {
-                int ret;
-
-                ret = String.Compare(x.k.ProviderName, y.k.ProviderName, true);
-                if (ret != 0) return ret;
-
-                ret = String.Compare(x.k.MeterName, y.k.MeterName, true);
-                if (ret != 0) return ret;
-
-                ret = String.Compare(x.k.InstrumentName, y.k.InstrumentName, true);
-                if (ret != 0) return ret;
-
-                ret = String.Compare(x.k.InstrumentType, y.k.InstrumentType, true);
-                if (ret != 0) return ret;
-
-                return 0;
-            });
-
-            foreach (var group in sortedList)
+            var items = new List<ExportItem>();
+            while (que.TryDequeue(out var item))
             {
-                Console.WriteLine($"{group.k.MeterName}.{group.k.InstrumentName} [Kind={group.k.InstrumentType}] [Provider={group.k.ProviderName}]");
+                items.Add(item);
 
-                foreach (var q in group.v)
+                if (items.Count >= this.batchSize)
                 {
-                    var payload = client.Send(q);
-
-                    client.Receive(payload);
+                    Console.WriteLine($"OTLP Exporter sends {items.Count} items...");
+                    var bytes = client.Send(items.ToArray());
+                    cloud.Enqueue(bytes);
+                    items.Clear();
                 }
+            }
+
+            if (items.Count > 0)
+            {
+                Console.WriteLine($"OTLP Exporter sends {items.Count} items...");
+                var bytes = client.Send(items.ToArray());
+                cloud.Enqueue(bytes);
+            }
+        }
+
+        public async Task ReceiveTask(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested || !cloud.IsEmpty)
+            {
+                while (cloud.TryDequeue(out var bytes))
+                {
+                    client.Receive(bytes);
+                }
+
+                await Task.Delay(100);
             }
         }
     }

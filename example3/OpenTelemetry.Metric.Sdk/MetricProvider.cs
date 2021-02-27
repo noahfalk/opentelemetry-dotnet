@@ -59,6 +59,13 @@ namespace OpenTelemetry.Metric.Sdk
             return this;
         }
 
+        public MetricProvider AttachSource(string ns, string version)
+        {
+            var source = MetricSource.GetSource(ns, version);
+            sources.Add(source);
+            return this;
+        }
+
         public MetricProvider AddMetricInclusion(string term)
         {
             metricFilterList.Add(Tuple.Create("Include", term));
@@ -180,7 +187,8 @@ namespace OpenTelemetry.Metric.Sdk
 
         private List<(AggregatorKey aggKey, Aggregator agg)> ExpandLabels(MetricBase meter, MetricLabelSet labels)
         {
-            var ns = meter.source.Name;
+            var meterName = meter.source.Name;
+            var meterVersion = meter.source.Version;
             var name = meter.MetricName;
             var type = meter.MetricType;
 
@@ -188,7 +196,7 @@ namespace OpenTelemetry.Metric.Sdk
 
             // TODO: Find a more performant way to avoid string interpolation.  Maybe class for segmented string list.  Reuse Labelset?
 
-            var qualifiedNameXXX = ($"{ns}/{type}/{name}");
+            var qualifiedNameXXX = ($"{meterName}/{type}/{name}");
 
             // Merge Bound and Ad-Hoc labels into one
 
@@ -244,7 +252,7 @@ namespace OpenTelemetry.Metric.Sdk
 
             // Meter for total (dropping all labels)
             var defaultAggName = defaultAgg.GetType().Name;
-            var aggKey = new AggregatorKey(ns, name, type, defaultAggName, MetricLabelSet.DefaultLabelSet);
+            var aggKey = new AggregatorKey(meterName, meterVersion, name, type, defaultAggName, MetricLabelSet.DefaultLabelSet);
             label_aggregates.Add((aggKey, defaultAgg));
 
             // Meter for each configured dimension
@@ -290,13 +298,13 @@ namespace OpenTelemetry.Metric.Sdk
                             var kv = k.Split("=");
                             return (kv[0], kv[1]);
                         }).ToArray());
-                        label_aggregates.Add((new AggregatorKey(ns, name, type, aggName, dimLabels), agg));
+                        label_aggregates.Add((new AggregatorKey(meterName, meterVersion, name, type, aggName, dimLabels), agg));
                     }
                 }
 
                 if (aggSet.labels.Length == 0)
                 {
-                    label_aggregates.Add((new AggregatorKey(ns, name, type, aggName, MetricLabelSet.DefaultLabelSet), agg));
+                    label_aggregates.Add((new AggregatorKey(meterName, meterVersion, name, type, aggName, MetricLabelSet.DefaultLabelSet), agg));
                 }
             }
 
@@ -370,7 +378,8 @@ namespace OpenTelemetry.Metric.Sdk
                     var item = new ExportItem();
                     item.dt = DateTimeOffset.UtcNow;
                     item.ProviderName = name;
-                    item.MeterName = kv.Key.ns;
+                    item.MeterName = kv.Key.meterName;
+                    item.MeterVersion = kv.Key.meterVersion;
                     item.InstrumentName = kv.Key.name;
                     item.InstrumentType = kv.Key.type;
                     item.Labels = kv.Key.labels;

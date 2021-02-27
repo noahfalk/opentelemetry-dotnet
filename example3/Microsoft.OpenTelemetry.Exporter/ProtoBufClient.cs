@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
 using Google.Protobuf;
 using OpenTelemetry.Metric.Sdk;
 using Opentelemetry.Proto.Metrics.V1;
 using Opentelemetry.Proto.Common.V1;
+using Opentelemetry.Proto.Collector.Metrics.V1;
 
 namespace Microsoft.OpenTelemetry.Export
 {
@@ -14,49 +15,100 @@ namespace Microsoft.OpenTelemetry.Export
         {
         }
 
-        public byte[] Send(ExportItem item)
+        public (string name, string value)[] GetResource()
         {
-            if (item.AggType == "SumCountMinMax")
+            var resources = new (string name, string value)[] {
+                ( "Host", "LocalHost"),
+                ( "Location", "Portland" )
+            };
+
+            return resources;
+        }
+
+        public byte[] Send(ExportItem[] items)
+        {
+            var groups = items.GroupBy(
+                k => (k.MeterName, k.MeterVersion),
+                item => item,
+                (k,items) => (k, items));
+
+            var instMetrics = new List<InstrumentationLibraryMetrics>();
+            foreach (var group in groups)
             {
-                Metric metric = new Metric();
-                metric.Name = $"{item.ProviderName}::{item.MeterName}.{item.InstrumentName} [{item.InstrumentType}]";
-                var sum = new DoubleSum();
-                metric.DoubleSum = sum;
-                sum.IsMonotonic = true;
-                var datapoints = sum.DataPoints;
+                var instMetric = new InstrumentationLibraryMetrics();
+                instMetric.InstrumentationLibrary = new InstrumentationLibrary();
+                var lib = instMetric.InstrumentationLibrary;
+                lib.Name = group.k.MeterName;
+                lib.Version = group.k.MeterVersion;
 
-                var datapoint = new DoubleDataPoint();
-                datapoint.StartTimeUnixNano = (ulong) item.dt.ToUnixTimeMilliseconds() * 100000;
-                datapoint.TimeUnixNano = (ulong) item.dt.ToUnixTimeMilliseconds() * 100000;
-
-                foreach (var l in item.Labels.GetLabels())
+                // Add all the ExportItems...
+                foreach (var item in group.items)
                 {
-                    var kv = new StringKeyValue();
-                    kv.Key = l.name;
-                    kv.Value = l.value;
-                    datapoint.Labels.Add(kv);
-                }
-
-                foreach (var d in item.AggData)
-                {
-                    if (d.name == "sum")
+                    var metrics = BuildMetric(item);
+                    if (metrics is not null)
                     {
-                        datapoint.Value = double.Parse(d.value);
-                        break;
+                        instMetric.Metrics.AddRange(metrics);
                     }
                 }
-                datapoints.Add(datapoint);
 
-                var bytes = new byte[1000];
-                var outstream = new CodedOutputStream(bytes);
-                metric.WriteTo(outstream);
-
-                var msg = new Span<byte>(bytes, 0, (int) outstream.Position);
-
-                return msg.ToArray();
+                instMetrics.Add(instMetric);
             }
 
-            return new byte[0] {};
+            var resmetric = new ResourceMetrics();
+            resmetric.InstrumentationLibraryMetrics.AddRange(instMetrics);
+            resmetric.Resource = new Opentelemetry.Proto.Resource.V1.Resource();
+            resmetric.Resource.DroppedAttributesCount = 0;
+            var attribs = resmetric.Resource.Attributes;
+            foreach (var resource in this.GetResource())
+            {
+                var kv = new KeyValue();
+                kv.Key = resource.name;
+                kv.Value = new AnyValue();
+                kv.Value.StringValue = resource.value;
+                attribs.Add(kv);
+            }
+
+            var request = new ExportMetricsServiceRequest();
+            request.ResourceMetrics.Add(resmetric);
+
+            return request.ToByteArray();
+        }
+
+        public Metric[] BuildMetric(ExportItem item)
+        {
+            var metrics = new List<Metric>();
+
+            if (item.AggType == "SumCountMinMax")
+            {
+                foreach (var d in item.AggData)
+                {
+                    Metric metric = new Metric();
+                    metric.Name = $"{item.InstrumentName} _{d.name} [{item.InstrumentType}]";
+                    var sum = new DoubleSum();
+                    metric.DoubleSum = sum;
+                    sum.IsMonotonic = true;
+                    var datapoints = sum.DataPoints;
+
+                    var datapoint = new DoubleDataPoint();
+                    datapoint.StartTimeUnixNano = (ulong) item.dt.ToUnixTimeMilliseconds() * 100000;
+                    datapoint.TimeUnixNano = (ulong) item.dt.ToUnixTimeMilliseconds() * 100000;
+
+                    foreach (var l in item.Labels.GetLabels())
+                    {
+                        var kv = new StringKeyValue();
+                        kv.Key = l.name;
+                        kv.Value = l.value;
+                        datapoint.Labels.Add(kv);
+                    }
+
+                    datapoint.Value = double.Parse(d.value);
+                    datapoints.Add(datapoint);
+
+                    metrics.Add(metric);
+                }
+            }
+
+            return metrics.ToArray();
         }
 
         public void Receive(byte[] bytes)
@@ -65,28 +117,77 @@ namespace Microsoft.OpenTelemetry.Export
             {
                 Console.WriteLine($"Received {bytes.Length} bytes");
 
-                var parser = new Google.Protobuf.MessageParser<Metric>(() => new Metric());
-                var inMetric = parser.ParseFrom(bytes);
+                var parser = new Google.Protobuf.MessageParser<ExportMetricsServiceRequest>(() => new ExportMetricsServiceRequest());
+                var request = parser.ParseFrom(bytes);
 
-                Console.WriteLine($"  Name: {inMetric.Name}");
-                if (inMetric.DoubleSum is not null)
+                var records = new List<(
+                    string resource,
+                    string meterName,
+                    string meterVersion,
+                    string name,
+                    string label,
+                    ulong timestamp,
+                    string value)>();
+
+                foreach (var resMetric in request.ResourceMetrics)
                 {
-                    foreach (var dp in inMetric.DoubleSum.DataPoints)
-                    {
-                        var items = new List<string>();
+                    var attrs = resMetric.Resource.Attributes
+                        .Select(k => $"{k.Key}={k.Value.StringValue}")
+                        .ToList();
+                    attrs.Sort();
+                    var resource = String.Join("|", attrs);
 
-                        if (dp.Labels is not null)
+                    foreach (var instMetric in resMetric.InstrumentationLibraryMetrics)
+                    {
+                        string meterName = instMetric.InstrumentationLibrary.Name;
+                        string meterVersion = instMetric.InstrumentationLibrary.Version;
+
+                        foreach (var metric in instMetric.Metrics)
                         {
-                            foreach (var l in dp.Labels)
+                            if (metric.DoubleSum is not null)
                             {
-                                items.Add($"{l.Key}={l.Value}");
+                                foreach (var dp in metric.DoubleSum.DataPoints)
+                                {
+                                    var labels = dp.Labels.Select(k => $"{k.Key}={k.Value}").ToList();
+                                    labels.Sort();
+
+                                    records.Add((
+                                        resource,
+                                        meterName,
+                                        meterVersion,
+                                        metric.Name,
+                                        String.Join("|", labels),
+                                        dp.TimeUnixNano,
+                                        $"{dp.Value}"
+                                    ));
+                                }
                             }
                         }
-
-                        items.Sort();
-
-                        Console.WriteLine($"  {dp.Value} [{String.Join("|", items)}]");
                     }
+                }
+
+                // Sort and Display
+
+                var sortedList = new List<string>();
+                foreach (var rec in records)
+                {
+                    var fields = new string[] {
+                        //rec.resource,
+                        rec.meterName,
+                        rec.meterVersion,
+                        rec.label,
+                        rec.name,
+                        rec.timestamp.ToString(),
+                        rec.value
+                    };
+
+                    sortedList.Add(String.Join(" | ", fields));
+                }
+                sortedList.Sort();
+
+                foreach (var rec in sortedList)
+                {
+                    Console.WriteLine(rec);
                 }
             }
         }

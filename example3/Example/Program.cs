@@ -50,7 +50,7 @@ namespace Example
                         ("Mode", "Batch")))
 
                 //.AddExporter(new ConsoleExporter("export1", 6000))
-                .AddExporter(new OTLPExporter(3000))
+                .AddExporter(new OTLPExporter(10, 6000))
 
                 // Finalize pipeline
                 .Build()

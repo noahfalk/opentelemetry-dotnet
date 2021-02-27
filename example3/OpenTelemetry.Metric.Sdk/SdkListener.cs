@@ -49,5 +49,10 @@ namespace OpenTelemetry.Metric.Sdk
 
             return true;
         }
+        
+        public class ExtraSDKState : MeterState
+        {
+            // TODO: SDK can store additional state data for each meter
+        }
     }
 }

@@ -20,15 +20,17 @@ namespace OpenTelemetry.Metric.Sdk
 
     public struct AggregatorKey : IEquatable<AggregatorKey>
     {
-        public string ns;
+        public string meterName;
+        public string meterVersion;
         public string name;
         public string type;
         public string aggType;
         public MetricLabelSet labels;
 
-        public AggregatorKey(string ns, string name, string type, string aggType, MetricLabelSet labels)
+        public AggregatorKey(string meterName, string meterVersion, string name, string type, string aggType, MetricLabelSet labels)
         {
-            this.ns = ns;
+            this.meterName = meterName;
+            this.meterVersion = meterVersion;
             this.name = name;
             this.type = type;
             this.aggType = aggType;
@@ -37,7 +39,8 @@ namespace OpenTelemetry.Metric.Sdk
 
         public bool Equals(AggregatorKey other)
         {
-            var ret = this.ns.Equals(other.ns) &&
+            var ret = this.meterName.Equals(other.meterName) &&
+                this.meterVersion.Equals(other.meterVersion) &&
                 this.name.Equals(other.name) &&
                 this.type.Equals(other.type) &&
                 this.aggType.Equals(other.aggType) &&
@@ -57,12 +60,7 @@ namespace OpenTelemetry.Metric.Sdk
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(this.ns, this.name, this.type, this.aggType, this.labels);
+            return HashCode.Combine(this.meterName, this.meterVersion, this.name, this.type, this.aggType, this.labels);
         }
-    }
-
-    public class ExtraSDKState : MeterState
-    {
-        // TODO: SDK can store additional state data for each meter
     }
 }
