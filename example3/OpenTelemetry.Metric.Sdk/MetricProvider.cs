@@ -186,10 +186,10 @@ namespace OpenTelemetry.Metric.Sdk
             AggregationConfiguration aggConfig = meter.DefaultAggregation;
 
             // Aggregate for total (dropping all labels)
-            visitor(meter, value, new AggregatorKey(meter.Name, aggConfig, MetricLabelSet.DefaultLabelSet));
+            visitor(meter, value, new AggregatorKey(meter.LibName, meter.LibVersion, meter.Name, aggConfig, MetricLabelSet.DefaultLabelSet));
 
             // Aggregate for identity (preserving all labels)
-            visitor(meter, value, new AggregatorKey(meter.Name, aggConfig, new MetricLabelSet(meter.LabelNames, labelValues)));
+            visitor(meter, value, new AggregatorKey(meter.LibName, meter.LibVersion, meter.Name, aggConfig, new MetricLabelSet(meter.LabelNames, labelValues)));
 
             /*
             // Aggregate for each configured dimension
@@ -382,6 +382,8 @@ namespace OpenTelemetry.Metric.Sdk
                     item.Labels = kv.Key.labels;
                     item.AggregationConfig = kv.Key.AggregationConfig;
                     item.AggData = kv.Value.Serialize();
+                    item.LibName = kv.Key.libname;
+                    item.LibVersion = kv.Key.libver;
                     item.MeterName = kv.Key.name;
                     ret.Add(item);
                 }

@@ -20,11 +20,15 @@ namespace OpenTelemetry.Metric.Sdk
     public struct AggregatorKey : IEquatable<AggregatorKey>
     {
         public string name;
+        public string libname;
+        public string libver;
         public AggregationConfiguration AggregationConfig;
         public MetricLabelSet labels;
 
-        public AggregatorKey(string name, AggregationConfiguration aggregationConfig, MetricLabelSet labels)
+        public AggregatorKey(string libName, string libVer, string name, AggregationConfiguration aggregationConfig, MetricLabelSet labels)
         {
+            this.libname = libName;
+            this.libver = libVer;
             this.name = name;
             this.AggregationConfig = aggregationConfig;
             this.labels = labels;
@@ -33,6 +37,8 @@ namespace OpenTelemetry.Metric.Sdk
         public bool Equals(AggregatorKey other)
         {
             var ret = this.name.Equals(other.name) &&
+                this.libname.Equals(other.libname) &&
+                this.libver.Equals(other.libver) &&
                 this.AggregationConfig.Equals(other.AggregationConfig) &&
                 this.labels.Equals(other.labels);
             return ret;
@@ -50,7 +56,7 @@ namespace OpenTelemetry.Metric.Sdk
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(this.name, this.AggregationConfig, this.labels);
+            return HashCode.Combine(this.name, this.libname, this.libver, this.AggregationConfig, this.labels);
         }
     }
 }

@@ -82,7 +82,6 @@ namespace Example
                 }
             }));
 
-            /*
             taskList.Add(Task.Run(async () => {
                 var lib = new Library("Library_2", token);
 
@@ -94,8 +93,8 @@ namespace Example
             }));
 
             taskList.Add(Task.Run(async () => {
-                var sum = new Counter("Sum");
-                var lastvalue = new Gauge("Last");
+                var sum = new Counter("Program.Test3", "1.0.0", "Sum");
+                var lastvalue = new Gauge("Program.Test3", "1.0.0", "Last");
 
                 while (!token.IsCancellationRequested)
                 {
@@ -105,7 +104,6 @@ namespace Example
                     await Task.Delay(50);
                 }
             }));
-            */
 
             await Task.Delay(periodMilliseconds);
             cancelToken.Cancel();

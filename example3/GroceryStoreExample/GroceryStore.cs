@@ -27,9 +27,9 @@ namespace GroceryStoreExample
                 { "Store", store_name }
             };
 
-            item_counter = new Counter("GroceryStoreExample.GroceryStore.item_counter", staticLabels,
+            item_counter = new Counter("GroceryStoreExample", "1.0.0", "GroceryStore.item_counter", staticLabels,
                 new string[] { "Item", "Customer" });
-            cash_counter = new Counter("GroceryStoreExample.GroceryStore.cash_counter", staticLabels,
+            cash_counter = new Counter("GroceryStoreExample", "1.0.0", "GroceryStore.cash_counter", staticLabels,
                 new string[] { "Customer" });
         }
 

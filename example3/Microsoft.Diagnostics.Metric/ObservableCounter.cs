@@ -11,44 +11,44 @@ namespace Microsoft.Diagnostics.Metric
         // This is either a Func<double> or an Action<MeasurementObserver>
         object _observeValueFunc;
 
-        public ObservableCounter(string name, Func<double> observeValue = null) :
-            this(name, Array.Empty<string>(), observeValue)
+        public ObservableCounter(string libname, string libver, string name, Func<double> observeValue = null) :
+            this(libname, libver, name, Array.Empty<string>(), observeValue)
         {
         }
 
-        public ObservableCounter(string name, Action<MeasurementObserver> observeValues) :
-            this(name, Array.Empty<string>(), observeValues)
+        public ObservableCounter(string libname, string libver, string name, Action<MeasurementObserver> observeValues) :
+            this(libname, libver, name, Array.Empty<string>(), observeValues)
         {
         }
 
-        public ObservableCounter(string name, Dictionary<string, string> staticLabels, Func<double> observeValue = null) :
-            this(name, staticLabels, Array.Empty<string>(), observeValue)
+        public ObservableCounter(string libname, string libver, string name, Dictionary<string, string> staticLabels, Func<double> observeValue = null) :
+            this(libname, libver, name, staticLabels, Array.Empty<string>(), observeValue)
         {
         }
 
-        public ObservableCounter(string name, Dictionary<string, string> staticLabels, Action<MeasurementObserver> observeValues) :
-            this(name, staticLabels, Array.Empty<string>(), observeValues)
+        public ObservableCounter(string libname, string libver, string name, Dictionary<string, string> staticLabels, Action<MeasurementObserver> observeValues) :
+            this(libname, libver, name, staticLabels, Array.Empty<string>(), observeValues)
         {
         }
 
-        public ObservableCounter(string name, string[] labelNames, Func<double> observeValue = null) :
-            this(name, EmptyStaticLabels, labelNames, observeValue)
+        public ObservableCounter(string libname, string libver, string name, string[] labelNames, Func<double> observeValue = null) :
+            this(libname, libver, name, EmptyStaticLabels, labelNames, observeValue)
         {
         }
 
-        public ObservableCounter(string name, string[] labelNames, Action<MeasurementObserver> observeValues) :
-            this(name, EmptyStaticLabels, labelNames, observeValues)
+        public ObservableCounter(string libname, string libver, string name, string[] labelNames, Action<MeasurementObserver> observeValues) :
+            this(libname, libver, name, EmptyStaticLabels, labelNames, observeValues)
         {
         }
 
-        public ObservableCounter(string name, Dictionary<string, string> staticLabels, string[] labelNames, Func<double> observeValue = null) :
-            base(name, staticLabels, labelNames)
+        public ObservableCounter(string libname, string libver, string name, Dictionary<string, string> staticLabels, string[] labelNames, Func<double> observeValue = null) :
+            base(libname, libver, name, staticLabels, labelNames)
         {
             _observeValueFunc = observeValue;
         }
 
-        public ObservableCounter(string name, Dictionary<string, string> staticLabels, string[] labelNames, Action<MeasurementObserver> observeValues) :
-            base(name, staticLabels, labelNames)
+        public ObservableCounter(string libname, string libver, string name, Dictionary<string, string> staticLabels, string[] labelNames, Action<MeasurementObserver> observeValues) :
+            base(libname, libver, name, staticLabels, labelNames)
         {
             _observeValueFunc = observeValues;
         }
