@@ -11,6 +11,7 @@ namespace Microsoft.Diagnostics.Metric
         public static SumAggregation Sum = new SumAggregation();
         public static LastValueAggregation LastValue = new LastValueAggregation();
     }
+    
     public class AggregationConfiguration { }
 
     public class SumAggregation : AggregationConfiguration { }

@@ -18,15 +18,15 @@ namespace Microsoft.Diagnostics.Metric
 
     public abstract class LabeledMeter<T> : LabeledMeter where T : Meter
     {
-        public T Unlabled { get; }
-        public override string Name => Unlabled.Name;
-        public override Dictionary<string, string> StaticLabels => Unlabled.StaticLabels;
-        public override AggregationConfiguration DefaultAggregation => Unlabled.DefaultAggregation;
-        public override string[] LabelNames => Unlabled.LabelNames;
+        public T Unlabeled { get; }
+        public override string Name => Unlabeled.Name;
+        public override Dictionary<string, string> StaticLabels => Unlabeled.StaticLabels;
+        public override AggregationConfiguration DefaultAggregation => Unlabeled.DefaultAggregation;
+        public override string[] LabelNames => Unlabeled.LabelNames;
         
         protected LabeledMeter(T unlabeledMeter, string[] labelValues) : base(labelValues)
         {
-            Unlabled = unlabeledMeter;
+            Unlabeled = unlabeledMeter;
             MeterCollection.Instance.AddMetric(this);
         }
     }

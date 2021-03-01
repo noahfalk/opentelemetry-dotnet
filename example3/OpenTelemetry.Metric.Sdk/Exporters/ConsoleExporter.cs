@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading;
@@ -79,7 +79,7 @@ namespace OpenTelemetry.Metric.Sdk
                         dim = "{_Total}";
                     }
                     items.Add($"    {dim}{Environment.NewLine}" +
-                        $"        {q.AggregationConfig}: {String.Join("|", aggdata)}");
+                        $"        {q.AggregationConfig.GetType().Name}: {String.Join("|", aggdata)}");
                 }
 
                 items.Sort();

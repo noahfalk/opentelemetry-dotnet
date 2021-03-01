@@ -49,7 +49,7 @@ namespace Example
                         ("Mode", "Batch")))
                 */
 
-                //.AddExporter(new ConsoleExporter("export1", 6000))
+                .AddExporter(new ConsoleExporter("export1", 6000))
                 //.AddExporter(new OTLPExporter(10, 6000))
 
                 // Finalize pipeline
@@ -60,7 +60,7 @@ namespace Example
             await RunOperation(5000);
 
             // Stop our SDK
-            sdk.Stop();
+            sdk.Stop(TimeSpan.FromSeconds(3000));
         }
 
         public async Task RunOperation(int periodMilliseconds)
