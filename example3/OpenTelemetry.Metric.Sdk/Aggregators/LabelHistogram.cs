@@ -1,25 +1,18 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Diagnostics.Metric;
-using OpenTelemetry.Metric.Api;
 using OpenTelemetry.Metric.Sdk;
 
 namespace OpenTelemetry.Metric.Sdk
 {
-    public class LabelHistogram : Aggregator
-    {
-        public override AggregatorState CreateState()
-        {
-            return new LabelHistogramState();
-        }
-    }
-
     public class LabelHistogramState : AggregatorState
     {
         public Dictionary<string,int> bins = new();
 
-        public override void Update<T>(MetricBase meter, T value, MetricLabelSet labels)
+        public override void Update(MeterBase meter, double value)
         {
+            throw new NotImplementedException();
+            /*
             var effectiveLabels = new Dictionary<string,string>();
 
             var boundLabels = meter.Labels.GetLabels();
@@ -50,7 +43,7 @@ namespace OpenTelemetry.Metric.Sdk
                 }
 
                 bins[key] = count + 1;
-            }
+            }*/
         }
 
         public override (string key, string value)[] Serialize()

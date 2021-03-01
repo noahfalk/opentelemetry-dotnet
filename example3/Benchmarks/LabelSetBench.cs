@@ -5,7 +5,6 @@ using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Engines;
 
 using Microsoft.Diagnostics.Metric;
-using OpenTelemetry.Metric.Api;
 using OpenTelemetry.Metric.Sdk;
 
 namespace MyBenchmark

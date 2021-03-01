@@ -3,7 +3,6 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Engines;
 
-using OpenTelemetry.Metric.Api;
 using OpenTelemetry.Metric.Sdk;
 
 namespace MyBenchmark

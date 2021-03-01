@@ -170,6 +170,8 @@ to be performance critical so there is no reason for us to potentially worsen pe
 
 ## Do users create a new Metric directly with 'new' or is the creation indirected through a factory (or both)? 
 
+Proposed answer: Use 'new'
+
 #### 'new' option
 ````C#
 Counter c = new Counter("hats-sold");
@@ -216,10 +218,11 @@ Guage g = new Gauge("temperature");
 
 ### Design discussion
 
-- Per the .NET design guidelines, 'new' this is likely the most easily understood and discovered mechanism
+- Per the .NET design guidelines, 'new' is likely the most easily understood and discovered mechanism
    (but that doesn't mean it trumps any other concern)
 - Its hard to determine if we should use a factory until we determine what value are we trying to get from
-   the factory.
+   the factory. I'm going to iterate through each potential reason we might want a factory and explain why
+   I don't believe any of them are sufficient justification.
   - I don't think we should be using the factory to do what OTel uses its 'Provider' types for, allowing
     a 3rd party to replace the core implementation of metric. .NET has an interest in ensuring that multiple
     data consumers each have access to measurement data which means there needs to be a .NET provided impl
@@ -245,11 +248,8 @@ Guage g = new Gauge("temperature");
     as per-metric filter function is reasonably efficient. Not doing per-metric filtering might mean substantial
     irrelevant data collection occurs during steady-state operation where the performance goals are likely much
     higher.
-  - This leaves two reasons for factories that I think might be valuable: doing it to aggregate common metadata/
-    configuration for a set of related metrics in a component and doing it just to match a past API precedent.
-    We probably need to do more investigation of existing coding patterns and libraries to figure out how common
-    this is. Also if the goal is only common metadata, for example to capture library name and version we might
-    want to use a shared config object rather than a factory. This might look like:
+  - Aggregating common metadata/configuration can be done through a factory, but it can also be done without a
+    factory like this:
 ````C#
 TelemetrySource source = new TelemetrySource("HatterCorp.HatViewer", "v2.0.1");
 source.AddTag("BetaBuild", "true");
@@ -257,16 +257,23 @@ source.AddTag("BetaBuild", "true");
 Gauge g = new Gauge(source, "temperature");
 Counter c = new Counter(source, "hats-sold");
 ````
+    If this were are only reason to have a factory we'd be better off implementing the pattern above and not having
+    a factory, thus we can't use this one as the justification.
+  - Matching precedent in other metric APIs. The transformation from SomeFactory.CreateCounter() to new Counter() is
+    a pretty straightforward and mechanical change. Its a subjective educated guess that users aren't going to
+    be care about it and that overall they will appreciate the simplicty of 'new Counter()' instead. If we did
+    see bad feedback we could always change course.
+
 
 ## Should we standardize that all dimension values are strings or do we need to allow a broader set of types?
+
+Proposed answer: Yes, we should standardize dimension values as strings
 
 Early on the System.Diagnostics.Activity type used strings for its Tags property but OpenTelemetry wanted
 to support non-string types such as numbers, lists, maps, etc. We needed to create alternate APIs to
 allow users to pass in these other data types which made the API messier than it would have been if we
 had designed for this requirement up-front. Metric dimension values appear similar to tags so it is
 natural to wonder would we be making the same mistake if we defined them to be strings?
-
-Proposed answer: Yes, we should standardize dimension values as strings
 
 Email discussion:
 

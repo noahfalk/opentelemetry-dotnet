@@ -3,24 +3,24 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using System.Threading;
-using System.Text;
-using System.Linq;
 using Microsoft.Diagnostics.Metric;
-using OpenTelemetry.Metric.Api;
+using System.Net;
 
 namespace OpenTelemetry.Metric.Sdk
 {
     public class MetricProvider
     {
         private readonly object lockMeters = new();
-        private List<MeterBase> meters = new();
+        private List<Meter> meters = new();
 
         private ConcurrentDictionary<AggregatorKey, AggregatorState> aggregateDict = new();
+        private Action<MeterBase, double, AggregatorKey> _updateAggregatorByKeyFunc;
 
         private string name;
         private int collectPeriod_ms = 2000;
         private bool isBuilt = false;
-        private CancellationTokenSource cancelTokenSrc = new();
+        private bool flushCollect = false;
+        private CancellationTokenSource cts = new();
 
         private List<Tuple<string,string>> metricFilterList = new();
 
@@ -31,42 +31,29 @@ namespace OpenTelemetry.Metric.Sdk
         private Task collectTask;
         private Task dequeueTask;
 
-        private SdkListener listener;
+        private MeterListener listener;
 
-        private HashSet<MetricSource> sources = new();
-
-        private ConcurrentQueue<Tuple<MetricBase,DateTimeOffset,object,MetricLabelSet>> incomingQueue = new();
+        private ConcurrentQueue<Tuple<MeterBase,double,string[],object>> incomingQueue = new();
         private bool useQueue = false;
+
+        public MetricProvider()
+        {
+            this.listener = new MeterListener()
+            {
+                MeterPublished = OnMeterPublished,
+                MeasurementRecorded = OnMeasurementRecorded
+            };
+            // cache this delegate so we don't keep allocating it
+            this._updateAggregatorByKeyFunc = this.UpdateAggregatorByKey;
+        }
 
         public MetricProvider Name(string name)
         {
             this.name = name;
-            this.listener = new SdkListener(this);
-
             return this;
         }
 
-        public MetricProvider AttachSource(MetricSource source)
-        {
-            sources.Add(source);
-            return this;
-        }
-
-        public MetricProvider AttachSource(string ns)
-        {
-            var source = MetricSource.GetSource(ns);
-            sources.Add(source);
-            return this;
-        }
-
-        public MetricProvider AttachSource(string ns, string version)
-        {
-            var source = MetricSource.GetSource(ns, version);
-            sources.Add(source);
-            return this;
-        }
-
-        public MetricProvider AddMetricInclusion(string term)
+        public MetricProvider Include(string term)
         {
             metricFilterList.Add(Tuple.Create("Include", term));
             return this;
@@ -106,10 +93,10 @@ namespace OpenTelemetry.Metric.Sdk
         {
             // Start Periodic Collection Task
 
-            var token = cancelTokenSrc.Token;
+            var token = cts.Token;
 
             collectTask = Task.Run(async () => {
-                while (!token.IsCancellationRequested)
+                while (!flushCollect && !token.IsCancellationRequested)
                 {
                     try
                     {
@@ -153,16 +140,12 @@ namespace OpenTelemetry.Metric.Sdk
                 });
             }
 
-            foreach (var source in sources)
-            {
-                source.AttachListener(listener, "OTel SDK");
-            }
-
             foreach (var exporter in exporters)
             {
                 exporter.Start(token);
             }
 
+            listener.Start();
             isBuilt = true;
 
             return this;
@@ -170,14 +153,22 @@ namespace OpenTelemetry.Metric.Sdk
 
         public void Stop()
         {
-            cancelTokenSrc.Cancel();
+            Stop(TimeSpan.Zero);
+        }
 
-            foreach (var source in sources)
-            {
-                source.DettachListener(listener, "OTel SDK");
-            }
+        public void Stop(TimeSpan timeout)
+        {
+            cts.CancelAfter(timeout);
 
+            listener.Dispose();
+
+            flushCollect = true;
             collectTask.Wait();
+
+            foreach (var exporter in exporters)
+            {
+                exporter.BeginFlush();
+            }
 
             foreach (var exporter in exporters)
             {
@@ -185,77 +176,23 @@ namespace OpenTelemetry.Metric.Sdk
             }
         }
 
-        private List<(AggregatorKey aggKey, Aggregator agg)> ExpandLabels(MetricBase meter, MetricLabelSet labels)
+        private void VisitAggregatorKeys(MeterBase meter, double value, string[] labelValues, Action<MeterBase, double, AggregatorKey> visitor)
         {
-            var meterName = meter.source.Name;
-            var meterVersion = meter.source.Version;
-            var name = meter.MetricName;
-            var type = meter.MetricType;
-
-            // TODO: Area for performance improvements
-
-            // TODO: Find a more performant way to avoid string interpolation.  Maybe class for segmented string list.  Reuse Labelset?
-
-            var qualifiedNameXXX = ($"{meterName}/{type}/{name}");
-
-            // Merge Bound and Ad-Hoc labels into one
-
-            Dictionary<string,string> labelDict = new();
-
-            var boundLabels = meter.Labels.GetLabels();
-            foreach (var label in boundLabels)
-            {
-                labelDict[label.name] = label.value;
-            }
-
-            var adhocLabels = labels.GetLabels();
-            foreach (var label in adhocLabels)
-            {
-                labelDict[label.name] = label.value;
-            }
-
-            // Get Hints
-
-            Dictionary<string,string> hints = new();
-            var hintLabels = meter.Hints.GetLabels();
-            foreach (var label in hintLabels)
-            {
-                hints[label.name] = label.value;
-            }
-
             // Determine how to expand into different aggregates instances
 
-            List<(AggregatorKey aggKey, Aggregator aggregator)> label_aggregates = new();
+            // The SDK can use any logic of configuration it wants to determine that actual
+            // aggregation mechanism to use. This is a trivial implementation that uses
+            // whatever the library suggested to use.
+            AggregationConfiguration aggConfig = meter.DefaultAggregation;
 
-            // Use Hints for default aggregator for _Total
+            // Aggregate for total (dropping all labels)
+            visitor(meter, value, new AggregatorKey(meter.Name, aggConfig, MetricLabelSet.DefaultLabelSet));
 
-            Aggregator defaultAgg = default;
-            try
-            {
-                var defaultType = typeof(LastValueAggregator);
-                var defaultNamespace = defaultType.Namespace;
-                var defaultName = hints.GetValueOrDefault("DefaultAggregator", defaultType.Name);
+            // Aggregate for identity (preserving all labels)
+            visitor(meter, value, new AggregatorKey(meter.Name, aggConfig, new MetricLabelSet(meter.LabelNames, labelValues)));
 
-                var aggType = Type.GetType($"{defaultNamespace}.{defaultName}");
-                var obj = Activator.CreateInstance(aggType);
-                defaultAgg = obj as Aggregator;
-            }
-            catch (Exception)
-            {
-                // Do Nothing
-            }
-
-            if (defaultAgg is null)
-            {
-                defaultAgg = new LastValueAggregator();
-            }
-
-            // Meter for total (dropping all labels)
-            var defaultAggName = defaultAgg.GetType().Name;
-            var aggKey = new AggregatorKey(meterName, meterVersion, name, type, defaultAggName, MetricLabelSet.DefaultLabelSet);
-            label_aggregates.Add((aggKey, defaultAgg));
-
-            // Meter for each configured dimension
+            /*
+            // Aggregate for each configured dimension
             foreach (var aggSet in aggregateByLabelSet)
             {
                 var aggName = aggSet.agg.GetType().Name;
@@ -298,13 +235,13 @@ namespace OpenTelemetry.Metric.Sdk
                             var kv = k.Split("=");
                             return (kv[0], kv[1]);
                         }).ToArray());
-                        label_aggregates.Add((new AggregatorKey(meterName, meterVersion, name, type, aggName, dimLabels), agg));
+                        label_aggregates.Add((new AggregatorKey(name, meter.MetricType, aggName, dimLabels), agg));
                     }
                 }
 
                 if (aggSet.labels.Length == 0)
                 {
-                    label_aggregates.Add((new AggregatorKey(meterName, meterVersion, name, type, aggName, MetricLabelSet.DefaultLabelSet), agg));
+                    label_aggregates.Add((new AggregatorKey(name, meter.MetricType, aggName, MetricLabelSet.DefaultLabelSet), agg));
                 }
             }
 
@@ -324,42 +261,105 @@ namespace OpenTelemetry.Metric.Sdk
             }
 
             return label_aggregates;
+            */
         }
 
-        public bool OnRecord<T>(MetricBase meter, DateTimeOffset dt, T value, MetricLabelSet labels)
+        public void OnMeterPublished(MeterBase meter, MeterSubscribeOptions options)
+        {
+            if(meter is LabeledMeter)
+            {
+                options.Subscribe(GetLabeledMeterCookie((LabeledMeter)meter));
+            }
+            else
+            {
+                options.Subscribe();
+            }
+        }
+
+        object GetLabeledMeterCookie(LabeledMeter meter)
+        {
+            List<AggregatorKey> aggKeys = new List<AggregatorKey>();
+            VisitAggregatorKeys(meter, 0, meter.LabelValues, (_, _, key) => aggKeys.Add(key));
+            if (aggKeys.Count == 1)
+            {
+                return aggKeys[0];
+            }
+            else
+            {
+                return aggKeys.ToArray();
+            }
+        }
+
+        public void OnMeasurementRecorded(MeterBase meter, double value, string[] labelValues, object cookie)
         {
             if (useQueue)
             {
-                incomingQueue.Enqueue(Tuple.Create(meter, dt, (object) value, labels));
-                return true;
+                incomingQueue.Enqueue(Tuple.Create(meter, value, labelValues, cookie));
+                return;
             }
 
-            return ProcessRecord<T>(meter, dt, value, labels);
+            ProcessRecord(meter, value, labelValues, cookie);
         }
 
-        private bool ProcessRecord<T>(MetricBase meter, DateTimeOffset dt, T value, MetricLabelSet labels)
+        private void ProcessRecord(MeterBase meter, double value, string[] labelValues, object cookie)
         {
-            if (isBuilt && meter.Enabled)
+            // TODO: we need to figure out our atomicity guarantees. Right now this function updates
+            // potentially multiple aggregators for a single measurement and each aggregator might
+            // have state spread across multiple fields. Other threads might be updating or reading
+            // those values concurrently. At present this code is not thread-safe.
+
+            if (isBuilt)
             {
-                // Expand out all the aggregates we need to update based on this measurement
-                var label_aggregates = ExpandLabels(meter, labels);
-
-                foreach (var kv in label_aggregates)
+                // PERF: if we didn't wipe out the aggregateDict on every collect cycle the cookie
+                // could cache the AggregationState items directly rather than the keys. This would
+                // probably save us some CPU cycles in saved Dictionary lookup costs
+                if (cookie is AggregatorKey)
                 {
-                    AggregatorState aggState;
-                    if (!aggregateDict.TryGetValue(kv.aggKey, out aggState))
-                    {
-                        aggState = kv.agg.CreateState();
-                        aggregateDict[kv.aggKey] = aggState;
-                    }
-
-                    aggState.Update(meter, value, labels);
+                    UpdateAggregatorByKey(meter, value, (AggregatorKey)cookie);
                 }
+                else if (cookie is AggregatorKey[])
+                {
+                    foreach(AggregatorKey key in (AggregatorKey[])cookie)
+                    {
+                        UpdateAggregatorByKey(meter, value, key);
+                    }
+                }
+                else
+                {
+                    // we haven't cached the aggregators so we need to calculate them on the fly
+                    VisitAggregatorKeys(meter, value, labelValues, _updateAggregatorByKeyFunc);
+                }
+            }
+        }
 
-                return true;
+        void UpdateAggregatorByKey(MeterBase meter, double value, AggregatorKey aggKey)
+        {
+            AggregatorState aggState;
+            if (!aggregateDict.TryGetValue(aggKey, out aggState))
+            {
+                aggState = CreateAggregatorState(aggKey.AggregationConfig);
+                aggregateDict[aggKey] = aggState;
             }
 
-            return false;
+            aggState.Update(meter, value);
+        }
+
+        AggregatorState CreateAggregatorState(AggregationConfiguration config)
+        {
+            if(config is SumAggregation)
+            {
+                return new SumCountMinMaxState();
+            }
+            else if(config is LastValueAggregation)
+            {
+                return new LastValueState();
+            }
+            else 
+            {
+                // for any unsupported aggregations this SDK converts it to SumCountMinMax
+                // this is a flexible policy we can make it do whatever we want
+                return new SumCountMinMaxState();
+            }
         }
 
         private ExportItem[] Collect()
@@ -370,6 +370,8 @@ namespace OpenTelemetry.Metric.Sdk
 
             if (isBuilt)
             {
+                listener.RecordObservableMeters();
+
                 // Reset all aggregate states!
                 var oldAggStates = Interlocked.Exchange(ref aggregateDict, new ConcurrentDictionary<AggregatorKey, AggregatorState>());
 
@@ -377,14 +379,10 @@ namespace OpenTelemetry.Metric.Sdk
                 {
                     var item = new ExportItem();
                     item.dt = DateTimeOffset.UtcNow;
-                    item.ProviderName = name;
-                    item.MeterName = kv.Key.meterName;
-                    item.MeterVersion = kv.Key.meterVersion;
-                    item.InstrumentName = kv.Key.name;
-                    item.InstrumentType = kv.Key.type;
                     item.Labels = kv.Key.labels;
-                    item.AggType = kv.Key.aggType;
+                    item.AggregationConfig = kv.Key.AggregationConfig;
                     item.AggData = kv.Value.Serialize();
+                    item.MeterName = kv.Key.name;
                     ret.Add(item);
                 }
             }

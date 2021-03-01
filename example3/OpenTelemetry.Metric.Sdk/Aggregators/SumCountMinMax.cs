@@ -1,19 +1,10 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Diagnostics.Metric;
-using OpenTelemetry.Metric.Api;
 using OpenTelemetry.Metric.Sdk;
 
 namespace OpenTelemetry.Metric.Sdk
 {
-    public class SumCountMinMax : Aggregator
-    {
-        public override AggregatorState CreateState()
-        {
-            return new SumCountMinMaxState();
-        }
-    }
-
     public class SumCountMinMaxState : AggregatorState
     {
         public long count = 0;
@@ -21,34 +12,19 @@ namespace OpenTelemetry.Metric.Sdk
         public double max = 0;
         public double min = 0;
 
-        public override void Update<T>(MetricBase meter, T value, MetricLabelSet labels)
+        public override void Update(MeterBase meter, double value)
         {
-            double num = 0;
-
-            if (value is int i)
-            {
-                num = i;
-            }
-            else if (value is long l)
-            {
-                num = l;
-            }
-            else if (value is double d)
-            {
-                num = d;
-            }
-            
             count++;
-            sum += num;
+            sum += value;
             if (count == 1)
             {
-                min = num;
-                max = num;
+                min = value;
+                max = value;
             }
             else
             {
-                min = Math.Min(min, num);
-                max = Math.Max(max, num);
+                min = Math.Min(min, value);
+                max = Math.Max(max, value);
             }
         }
 

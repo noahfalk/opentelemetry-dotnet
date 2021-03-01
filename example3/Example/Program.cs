@@ -1,11 +1,9 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using MyLibrary;
 using Microsoft.Diagnostics.Metric;
-using Microsoft.OpenTelemetry.Export;
-using OpenTelemetry.Metric.Api;
 using OpenTelemetry.Metric.Sdk;
 
 namespace Example
@@ -29,9 +27,8 @@ namespace Example
                 // Use Queue to ensure constant time/space per measurement recording
                 .UseQueue()
 
-                // Add Metric Sources
-                .AttachSource(MetricSource.DefaultSource)
-                .AttachSource("MyLibrary")
+                // Add Metrics
+                .Include("MyLibrary")
 
                 // Add Filters.  Order matters.  Can be stacked.
                 //.AddMetricInclusion("/MyLibrary/")
@@ -39,6 +36,8 @@ namespace Example
                 //.AddMetricInclusion("/_Total")
 
                 // Configure what Labels are important
+                /* 
+                 * TODO
                 .AggregateByLabels(new SumCountMinMax(), 
                     new MetricLabelSet(
                         ("LibraryInstanceName", "*")),
@@ -48,9 +47,10 @@ namespace Example
                     new MetricLabelSet(
                         ("OperName", "*"), 
                         ("Mode", "Batch")))
+                */
 
                 //.AddExporter(new ConsoleExporter("export1", 6000))
-                .AddExporter(new OTLPExporter(10, 6000))
+                //.AddExporter(new OTLPExporter(10, 6000))
 
                 // Finalize pipeline
                 .Build()
@@ -81,6 +81,7 @@ namespace Example
                 }
             }));
 
+            /*
             taskList.Add(Task.Run(async () => {
                 var lib = new Library("Library_2", token);
 
@@ -92,19 +93,18 @@ namespace Example
             }));
 
             taskList.Add(Task.Run(async () => {
-                var rate = new RateCounter(MetricSource.DefaultSource, "Rate", 1, MetricLabelSet.DefaultLabelSet, MetricLabelSet.DefaultLabelSet);
-                var sum = new SumCounter(MetricSource.DefaultSource, "Sum", 1, MetricLabelSet.DefaultLabelSet, MetricLabelSet.DefaultLabelSet);
-                var lastvalue = new LastValueGauge(MetricSource.DefaultSource, "Last", 1, MetricLabelSet.DefaultLabelSet, MetricLabelSet.DefaultLabelSet);
+                var sum = new Counter("Sum");
+                var lastvalue = new Gauge("Last");
 
                 while (!token.IsCancellationRequested)
                 {
-                    rate.Mark();
                     sum.Add(rand.Next() % 100);
-                    lastvalue.Report(rand.Next() % 100);
+                    lastvalue.Set(rand.Next() % 100);
 
                     await Task.Delay(50);
                 }
             }));
+            */
 
             await Task.Delay(periodMilliseconds);
             cancelToken.Cancel();

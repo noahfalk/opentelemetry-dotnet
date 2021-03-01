@@ -1,14 +1,15 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
-using OpenTelemetry.Metric.Api;
 using OpenTelemetry.Metric.Sdk;
 
 namespace Microsoft.OpenTelemetry.Export
 {
+    /* TODO
+     * 
     public class OTLPExporter : Exporter
     {
         private Task exportTask;
@@ -106,4 +107,5 @@ namespace Microsoft.OpenTelemetry.Export
             }
         }
     }
+    */
 }

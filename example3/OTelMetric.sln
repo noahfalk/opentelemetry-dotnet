@@ -1,21 +1,23 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26124.0
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31005.135
 MinimumVisualStudioVersion = 15.0.26124.0
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Diagnostics.Metric", "Microsoft.Diagnostics.Metric\Microsoft.Diagnostics.Metric.csproj", "{513F068E-4BE0-4667-949A-9260BCB31949}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Diagnostics.Metric", "Microsoft.Diagnostics.Metric\Microsoft.Diagnostics.Metric.csproj", "{513F068E-4BE0-4667-949A-9260BCB31949}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTelemetry.Metric.Api", "OpenTelemetry.Metric.Api\OpenTelemetry.Metric.Api.csproj", "{8006B31B-737B-4659-A0CD-1A6AB137A9F4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenTelemetry.Metric.Api", "OpenTelemetry.Metric.Api\OpenTelemetry.Metric.Api.csproj", "{8006B31B-737B-4659-A0CD-1A6AB137A9F4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTelemetry.Metric.Sdk", "OpenTelemetry.Metric.Sdk\OpenTelemetry.Metric.Sdk.csproj", "{F226480D-CCD7-49EF-B25A-089A10E00B32}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenTelemetry.Metric.Sdk", "OpenTelemetry.Metric.Sdk\OpenTelemetry.Metric.Sdk.csproj", "{F226480D-CCD7-49EF-B25A-089A10E00B32}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GroceryStoreExample", "GroceryStoreExample\GroceryStoreExample.csproj", "{BE757918-DD1D-4CF1-8A92-F9AC2D57F15D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GroceryStoreExample", "GroceryStoreExample\GroceryStoreExample.csproj", "{BE757918-DD1D-4CF1-8A92-F9AC2D57F15D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example", "Example\Example.csproj", "{34BACE2F-78A5-474D-931E-C62519CF4BBF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Example", "Example\Example.csproj", "{34BACE2F-78A5-474D-931E-C62519CF4BBF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Benchmarks", "Benchmarks\Benchmarks.csproj", "{828224A3-709A-4748-BA86-ABD1BEF0A0D8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Benchmarks", "Benchmarks\Benchmarks.csproj", "{828224A3-709A-4748-BA86-ABD1BEF0A0D8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.OpenTelemetry.Exporter", "Microsoft.OpenTelemetry.Exporter\Microsoft.OpenTelemetry.Exporter.csproj", "{1497CA0E-C2D6-4BFF-81BA-BE26F30AE506}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.OpenTelemetry.Exporter", "Microsoft.OpenTelemetry.Exporter\Microsoft.OpenTelemetry.Exporter.csproj", "{1497CA0E-C2D6-4BFF-81BA-BE26F30AE506}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleExamples", "SimpleExamples\SimpleExamples.csproj", "{A152C0DE-90A3-4C5D-94D7-0E88488BA7AC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -25,9 +27,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{513F068E-4BE0-4667-949A-9260BCB31949}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -114,5 +113,23 @@ Global
 		{1497CA0E-C2D6-4BFF-81BA-BE26F30AE506}.Release|x64.Build.0 = Release|Any CPU
 		{1497CA0E-C2D6-4BFF-81BA-BE26F30AE506}.Release|x86.ActiveCfg = Release|Any CPU
 		{1497CA0E-C2D6-4BFF-81BA-BE26F30AE506}.Release|x86.Build.0 = Release|Any CPU
+		{A152C0DE-90A3-4C5D-94D7-0E88488BA7AC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A152C0DE-90A3-4C5D-94D7-0E88488BA7AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A152C0DE-90A3-4C5D-94D7-0E88488BA7AC}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A152C0DE-90A3-4C5D-94D7-0E88488BA7AC}.Debug|x64.Build.0 = Debug|Any CPU
+		{A152C0DE-90A3-4C5D-94D7-0E88488BA7AC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A152C0DE-90A3-4C5D-94D7-0E88488BA7AC}.Debug|x86.Build.0 = Debug|Any CPU
+		{A152C0DE-90A3-4C5D-94D7-0E88488BA7AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A152C0DE-90A3-4C5D-94D7-0E88488BA7AC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A152C0DE-90A3-4C5D-94D7-0E88488BA7AC}.Release|x64.ActiveCfg = Release|Any CPU
+		{A152C0DE-90A3-4C5D-94D7-0E88488BA7AC}.Release|x64.Build.0 = Release|Any CPU
+		{A152C0DE-90A3-4C5D-94D7-0E88488BA7AC}.Release|x86.ActiveCfg = Release|Any CPU
+		{A152C0DE-90A3-4C5D-94D7-0E88488BA7AC}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0C64B1E0-BA16-46CD-9843-D9264E75509A}
 	EndGlobalSection
 EndGlobal

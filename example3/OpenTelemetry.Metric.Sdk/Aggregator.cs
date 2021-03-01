@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Diagnostics.Metric;
-using OpenTelemetry.Metric.Api;
 using OpenTelemetry.Metric.Sdk;
 
 namespace OpenTelemetry.Metric.Sdk
@@ -13,37 +12,28 @@ namespace OpenTelemetry.Metric.Sdk
 
     public abstract class AggregatorState
     {
-        public abstract void Update<T>(MetricBase meter, T num, MetricLabelSet labels);
+        public abstract void Update(MeterBase meter, double num);
 
         public abstract (string key, string value)[] Serialize();
     }
 
     public struct AggregatorKey : IEquatable<AggregatorKey>
     {
-        public string meterName;
-        public string meterVersion;
         public string name;
-        public string type;
-        public string aggType;
+        public AggregationConfiguration AggregationConfig;
         public MetricLabelSet labels;
 
-        public AggregatorKey(string meterName, string meterVersion, string name, string type, string aggType, MetricLabelSet labels)
+        public AggregatorKey(string name, AggregationConfiguration aggregationConfig, MetricLabelSet labels)
         {
-            this.meterName = meterName;
-            this.meterVersion = meterVersion;
             this.name = name;
-            this.type = type;
-            this.aggType = aggType;
+            this.AggregationConfig = aggregationConfig;
             this.labels = labels;
         }
 
         public bool Equals(AggregatorKey other)
         {
-            var ret = this.meterName.Equals(other.meterName) &&
-                this.meterVersion.Equals(other.meterVersion) &&
-                this.name.Equals(other.name) &&
-                this.type.Equals(other.type) &&
-                this.aggType.Equals(other.aggType) &&
+            var ret = this.name.Equals(other.name) &&
+                this.AggregationConfig.Equals(other.AggregationConfig) &&
                 this.labels.Equals(other.labels);
             return ret;
         }
@@ -60,7 +50,7 @@ namespace OpenTelemetry.Metric.Sdk
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(this.meterName, this.meterVersion, this.name, this.type, this.aggType, this.labels);
+            return HashCode.Combine(this.name, this.AggregationConfig, this.labels);
         }
     }
 }

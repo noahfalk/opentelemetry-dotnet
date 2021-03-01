@@ -1,88 +1,83 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Diagnostics.Metric;
-using OpenTelemetry.Metric.Api;
 
 namespace MyLibrary
 {
     public class Library
     {
+
+        static Counter s_c1 = new Counter("c1", new string[] { "Label1", "Label2" });
+
+        LabeledCounter _c1;
         Counter counter_request;
         Counter counter_request2;
         Counter counter_request3;
-        Guage guage_qsize;
+        Gauge gauge_qsize;
         int count = 0;
 
         public Library(string name, CancellationToken token)
         {
-            var labels = new MetricLabelSet(
-                ("Program", "Test"),
-                ("LibraryInstanceName", name));
+            _c1 = s_c1.WithLabels(name, "Tomato");
 
-            // Create in Default source
+            var staticLabels = new Dictionary<string, string>()
+            {
+                {  "Program", "Test" },
+                { "LibraryInstanceName", name }
+            };
 
-            counter_request = MetricSource.DefaultSource.CreateCounter("request2", labels);
+            counter_request = new Counter("MyLibrary.request2", staticLabels);
 
-            guage_qsize = new Guage(MetricSource.DefaultSource, "queue_size", MetricLabelSet.DefaultLabelSet, 
-                new MetricLabelSet(
-                    ("Description", "A measure of Queue size"),
-                    ("DefaultAggregator", "LabelHistogram"))
-                );
+            gauge_qsize = new Gauge("MyLibrary.queue_size");
 
-            counter_request3 = new Counter("request3");
+            //TODO: make this async
+            counter_request3 = new Counter("MyLibrary.request3");
 
-            // Setup a callback Observer for a meter
-            counter_request3.SetObserver((m) => {
-                int val = count;
-                MetricLabelSet labels = new MetricLabelSet(
-                    ("LibraryInstanceName", name),
-                    ("Mode", "Observer"));
-                return Tuple.Create((object)val, labels);
-            });
+            counter_request2 = new Counter("MyLibrary.requests", staticLabels,
+                new string[] { "OperNum" });
 
-            // Setup a task to observe Meter periodically
-            Task t = new MeterObserverBuilder()
-                .SetMetronome(1000)
-                .AddMeter(counter_request3)
-                .Run(token);
-
-            // Create in custom source
-
-            var source = MetricSource.GetSource("MyLibrary");
-
-            counter_request2 = source.CreateCounter("requests", labels);
-
-            var counter_registered = new Counter(source, "registered");
-            counter_registered.Add(1, labels);
+            var counter_registered = new Counter("MyLibrary.registered",
+                labelNames: new string[] { "Program", "LibraryInstanceName" });
+            counter_registered.Add(1, "test", name);
         }
 
         public void DoOperation()
         {
+
+            _c1.Add(5);
+
             // Example of recording 1 measurment
 
             var opernum = count % 3;
 
-            var labels = new MetricLabelSet(("OperNum", $"{opernum}"));
+            //var labels = new MetricLabelSet(("OperNum", $"{opernum}"));
 
+            
             counter_request2.Add(1);
 
-            counter_request2.Add(0.15, labels);
+            counter_request2.Add(0.15, $"{opernum}");
 
             //counter_request3.Observe();
 
+
+            //I am proposing there is no batching API
+            /*
             // Example of recording a batch of measurements
 
             var labels2 = new MetricLabelSet(
                 ("OperNum", $"{opernum}"),
                 ("Mode", "Batch"));
 
+            
             new BatchMetricBuilder(labels2)
                 .RecordMetric(counter_request, 1.0)
-                .RecordMetric(guage_qsize, count)
+                .RecordMetric(gauge_qsize, count)
                 .RecordMetric(counter_request3, 1)
                 .RecordMetric(counter_request3, 0.1)
                 .Record();
+            */
 
             count++;
         }

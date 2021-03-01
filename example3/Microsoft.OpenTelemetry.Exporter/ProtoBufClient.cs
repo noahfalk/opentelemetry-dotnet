@@ -9,6 +9,8 @@ using Opentelemetry.Proto.Collector.Metrics.V1;
 
 namespace Microsoft.OpenTelemetry.Export
 {
+    /* TODO
+     * 
     public class ProtoBufClient
     {
         public ProtoBufClient()
@@ -78,7 +80,7 @@ namespace Microsoft.OpenTelemetry.Export
         {
             var metrics = new List<Metric>();
 
-            if (item.AggType == "SumCountMinMax")
+            if (item.AggregationConfig == "SumCountMinMax")
             {
                 foreach (var d in item.AggData)
                 {
@@ -191,5 +193,7 @@ namespace Microsoft.OpenTelemetry.Export
                 }
             }
         }
+    
     }
+    */
 }

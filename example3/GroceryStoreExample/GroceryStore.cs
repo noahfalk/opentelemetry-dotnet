@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Diagnostics.Metric;
-using OpenTelemetry.Metric.Api;
-using OpenTelemetry.Metric.Sdk;
 
 namespace GroceryStoreExample
 {
@@ -24,24 +22,15 @@ namespace GroceryStoreExample
             this.store_name = store_name;
 
             // Setup Metrics
+            var staticLabels = new Dictionary<string, string>
+            {
+                { "Store", store_name }
+            };
 
-            var source = MetricSource.GetSource("StoreMetrics");
-
-            var store_labelset = new MetricLabelSet(("Store", store_name));
-
-            item_counter = source.CreateCounter("item_counter", store_labelset, 
-                new MetricLabelSet(
-                    ("Description", "Number of items sold"),
-                    ("Unit", "Count"),
-                    ("DefaultAggregator", "Sum")
-                    ));
-
-            cash_counter = source.CreateCounter("cash_counter", store_labelset,
-                new MetricLabelSet(
-                    ("Description", "Total available cash"),
-                    ("Unit", "USD"),
-                    ("DefaultAggregator", "Sum")
-                    ));
+            item_counter = new Counter("GroceryStoreExample.GroceryStore.item_counter", staticLabels,
+                new string[] { "Item", "Customer" });
+            cash_counter = new Counter("GroceryStoreExample.GroceryStore.cash_counter", staticLabels,
+                new string[] { "Customer" });
         }
 
         public void process_order(string customer, params (string name, int qty)[] items)
@@ -53,11 +42,11 @@ namespace GroceryStoreExample
                 total_price += item.qty * price_list[item.name];
 
                 // Record Metric
-                item_counter.Add(item.qty, new MetricLabelSet(("Item", item.name), ("Customer", customer)));
+                item_counter.Add(item.qty, item.name, customer);
             }
 
             // Record Metric
-            cash_counter.Add(total_price, new MetricLabelSet(("Customer", customer)));
+            cash_counter.Add(total_price, customer);
         }
     }
 }

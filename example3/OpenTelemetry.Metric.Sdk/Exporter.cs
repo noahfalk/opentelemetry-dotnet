@@ -10,6 +10,7 @@ namespace OpenTelemetry.Metric.Sdk
     public abstract class Exporter
     {
         public abstract void Export(ExportItem[] exports);
+        public abstract void BeginFlush();
 
         public abstract void Start(CancellationToken token);
 
@@ -19,13 +20,9 @@ namespace OpenTelemetry.Metric.Sdk
     public class ExportItem
     {
         public DateTimeOffset dt { get; set; }
-        public string ProviderName { get; set; }
         public string MeterName { get; set; }
-        public string MeterVersion { get; set; }
-        public string InstrumentName { get; set; }
-        public string InstrumentType { get; set; }
         public MetricLabelSet Labels { get; set; }
-        public string AggType { get; set; }
+        public AggregationConfiguration AggregationConfig { get; set; }
         public (string name, string value)[] AggData { get; set; }
     }
 }

@@ -1,10 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
-using OpenTelemetry.Metric.Api;
 
 namespace OpenTelemetry.Metric.Sdk
 {
@@ -14,6 +13,7 @@ namespace OpenTelemetry.Metric.Sdk
         private ConcurrentQueue<ExportItem> queue = new();
         private string name;
         private int periodMilli;
+        private bool flush;
 
         public ConsoleExporter(string name, int periodMilli)
         {
@@ -29,10 +29,15 @@ namespace OpenTelemetry.Metric.Sdk
             }
         }
 
+        public override void BeginFlush()
+        {
+            flush = true;
+        }
+
         public override void Start(CancellationToken token)
         {
             exportTask = Task.Run(async () => {
-                while (!token.IsCancellationRequested)
+                while (!token.IsCancellationRequested && Process())
                 {
                     try
                     {
@@ -42,8 +47,6 @@ namespace OpenTelemetry.Metric.Sdk
                     {
                         // Do Nothing
                     }
-
-                    Process();
                 }
             });
         }
@@ -53,44 +56,21 @@ namespace OpenTelemetry.Metric.Sdk
             exportTask.Wait();
         }
 
-        public void Process()
+        public bool Process()
         {
             Console.WriteLine($"ConsoleExporter [{this.name}]...");
 
             var que = Interlocked.Exchange(ref queue, new ConcurrentQueue<ExportItem>());
 
-            var groups = que.GroupBy(
-                k => (k.ProviderName, k.MeterName, k.MeterVersion, k.InstrumentType, k.InstrumentName), 
-                v => v,
-                (k,v) => (k,v)
-                );
+            var sortedGroups = que.GroupBy(k => k.MeterName).OrderBy(g => g.Key);
 
-            var sortedList = groups.ToList();
-            sortedList.Sort((x,y) => {
-                int ret;
-
-                ret = String.Compare(x.k.ProviderName, y.k.ProviderName, true);
-                if (ret != 0) return ret;
-
-                ret = String.Compare(x.k.MeterName, y.k.MeterName, true);
-                if (ret != 0) return ret;
-
-                ret = String.Compare(x.k.InstrumentName, y.k.InstrumentName, true);
-                if (ret != 0) return ret;
-
-                ret = String.Compare(x.k.InstrumentType, y.k.InstrumentType, true);
-                if (ret != 0) return ret;
-
-                return 0;
-            });
-
-            foreach (var group in sortedList)
+            foreach (var group in sortedGroups)
             {
-                Console.WriteLine($"{group.k.MeterName}|{group.k.MeterVersion}|{group.k.InstrumentName} [Kind={group.k.InstrumentType}] [Provider={group.k.ProviderName}]");
+                Console.WriteLine($"{group.Key}");
 
                 var items = new List<string>();
 
-                foreach (var q in group.v)
+                foreach (var q in group)
                 {
                     var aggdata = q.AggData.Select(k => $"{k.name}={k.value}");
                     var dim = String.Join( " | ", q.Labels.GetLabels().Select(k => $"{k.name}={k.value}"));
@@ -99,7 +79,7 @@ namespace OpenTelemetry.Metric.Sdk
                         dim = "{_Total}";
                     }
                     items.Add($"    {dim}{Environment.NewLine}" +
-                        $"        {q.AggType}: {String.Join("|", aggdata)}");
+                        $"        {q.AggregationConfig}: {String.Join("|", aggdata)}");
                 }
 
                 items.Sort();
@@ -109,13 +89,7 @@ namespace OpenTelemetry.Metric.Sdk
                 }
             }
 
-            // foreach (var q in que)
-            // {
-            //     var aggdata = q.AggData.Select(k => $"{k.name}={k.value}");
-            //     var dim = String.Join( " | ", q.Labels.GetLabels().Select(k => $"{k.name}={k.value}"));
-            //     Console.WriteLine($"    {q.ProviderName} {q.MeterName} {q.InstrumentType} {q.InstrumentName} | {dim}{Environment.NewLine}" +
-            //         $"        {q.AggType}: {String.Join("|", aggdata)}");
-            // }
+            return !flush;
         }
     }
 }

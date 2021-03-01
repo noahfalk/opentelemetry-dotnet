@@ -1,5 +1,4 @@
-﻿using System;
-using OpenTelemetry.Metric.Api;
+using System;
 using OpenTelemetry.Metric.Sdk;
 using Microsoft.Diagnostics.Metric;
 
@@ -12,7 +11,10 @@ namespace GroceryStoreExample
             // Create Metric Pipeline
             var pipeline = new MetricProvider()
                 .Name("OrderPipeline1")
-                .AttachSource("StoreMetrics")
+                .Include("GroceryStoreExample")
+
+                /*
+                 * TODO
                 .AggregateByLabels(new SumCountMinMax(), 
                     new MetricLabelSet(("Customer", "*")),
                     new MetricLabelSet(("Item", "lemon,tomato")),
@@ -20,14 +22,19 @@ namespace GroceryStoreExample
                     new MetricLabelSet(("Store", "*"), ("Item", "*"))
                     )
                 .AggregateByLabels(new LabelHistogram())
+                */
                 .AddExporter(new ConsoleExporter("export1", 6000))
                 .Build();
 
             var pipeline2 = new MetricProvider()
                 .Name("OrderPipeline2")
-                .AttachSource("StoreMetrics")
+                .Include("GroceryStoreExample")
                 .SetCollectionPeriod(6000)
+
+                /* TODO
+                 * 
                 .AggregateByLabels(new LabelHistogram())
+                */
                 .AddExporter(new ConsoleExporter("export2", 1000))
                 .AddExporter(new ConsoleExporter("export3", 6000))
                 .Build();
