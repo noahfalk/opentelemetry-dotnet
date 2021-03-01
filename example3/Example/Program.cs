@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using MyLibrary;
 using Microsoft.Diagnostics.Metric;
 using OpenTelemetry.Metric.Sdk;
+using Microsoft.OpenTelemetry.Export;
 
 namespace Example
 {
@@ -49,8 +50,8 @@ namespace Example
                         ("Mode", "Batch")))
                 */
 
-                .AddExporter(new ConsoleExporter("export1", 6000))
-                //.AddExporter(new OTLPExporter(10, 6000))
+                //.AddExporter(new ConsoleExporter("export1", 6000))
+                .AddExporter(new OTLPExporter(10, 6000))
 
                 // Finalize pipeline
                 .Build()
@@ -60,7 +61,7 @@ namespace Example
             await RunOperation(5000);
 
             // Stop our SDK
-            sdk.Stop(TimeSpan.FromSeconds(3000));
+            sdk.Stop();
         }
 
         public async Task RunOperation(int periodMilliseconds)

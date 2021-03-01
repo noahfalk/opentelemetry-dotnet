@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Google.Protobuf;
+using Microsoft.Diagnostics.Metric;
 using OpenTelemetry.Metric.Sdk;
 using Opentelemetry.Proto.Metrics.V1;
 using Opentelemetry.Proto.Common.V1;
@@ -9,8 +10,6 @@ using Opentelemetry.Proto.Collector.Metrics.V1;
 
 namespace Microsoft.OpenTelemetry.Export
 {
-    /* TODO
-     * 
     public class ProtoBufClient
     {
         public ProtoBufClient()
@@ -29,8 +28,9 @@ namespace Microsoft.OpenTelemetry.Export
 
         public byte[] Send(ExportItem[] items)
         {
+            var MeterVersion = "0.0.1";
             var groups = items.GroupBy(
-                k => (k.MeterName, k.MeterVersion),
+                k => (k.MeterName, MeterVersion),
                 item => item,
                 (k,items) => (k, items));
 
@@ -80,12 +80,12 @@ namespace Microsoft.OpenTelemetry.Export
         {
             var metrics = new List<Metric>();
 
-            if (item.AggregationConfig == "SumCountMinMax")
+            if (item.AggregationConfig is SumAggregation)
             {
                 foreach (var d in item.AggData)
                 {
                     Metric metric = new Metric();
-                    metric.Name = $"{item.InstrumentName} _{d.name} [{item.InstrumentType}]";
+                    metric.Name = $"{item.MeterName} _{d.name}";
                     var sum = new DoubleSum();
                     metric.DoubleSum = sum;
                     sum.IsMonotonic = true;
@@ -195,5 +195,4 @@ namespace Microsoft.OpenTelemetry.Export
         }
     
     }
-    */
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading;
@@ -8,8 +8,6 @@ using OpenTelemetry.Metric.Sdk;
 
 namespace Microsoft.OpenTelemetry.Export
 {
-    /* TODO
-     * 
     public class OTLPExporter : Exporter
     {
         private Task exportTask;
@@ -37,6 +35,11 @@ namespace Microsoft.OpenTelemetry.Export
             }
         }
 
+        public override void BeginFlush()
+        {
+            // TODO
+        }
+
         public override void Start(CancellationToken token)
         {
             exportTask = Task.Run(async () => {
@@ -60,10 +63,16 @@ namespace Microsoft.OpenTelemetry.Export
 
         public override void Stop()
         {
-            exportTask.Wait();
+            if (exportTask is not null)
+            {
+                exportTask.Wait();
+            }
             
             receiveTokenSrc.Cancel();
-            receiveTask.Wait();
+            if (receiveTask is not null)
+            {
+                receiveTask.Wait();
+            }
         }
 
         public void Process()
@@ -107,5 +116,4 @@ namespace Microsoft.OpenTelemetry.Export
             }
         }
     }
-    */
 }
