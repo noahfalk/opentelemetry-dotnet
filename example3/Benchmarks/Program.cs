@@ -22,6 +22,10 @@ namespace MyBenchmark
                     case "labelset":
                         var labelsetSummary = BenchmarkRunner.Run<LabelSetBench>();
                         break;
+
+                    case "proto":
+                        var proto = BenchmarkRunner.Run<MetricProtoBench>();
+                        break;
                 }
             }
         }

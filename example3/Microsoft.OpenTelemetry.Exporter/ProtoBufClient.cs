@@ -160,23 +160,15 @@ namespace Microsoft.OpenTelemetry.Export
             return metrics.ToArray();
         }
 
-        public void Receive(byte[] bytes)
+        public ParseRecord[] ParsePayload(byte[] bytes)
         {
+
+            var records = new List<ParseRecord>();
+
             if (bytes.Length > 0)
             {
-                Console.WriteLine($"Received {bytes.Length} bytes");
-
                 var parser = new Google.Protobuf.MessageParser<ExportMetricsServiceRequest>(() => new ExportMetricsServiceRequest());
                 var request = parser.ParseFrom(bytes);
-
-                var records = new List<(
-                    string resource,
-                    string meterName,
-                    string meterVersion,
-                    string name,
-                    string label,
-                    ulong timestamp,
-                    string value)>();
 
                 foreach (var resMetric in request.ResourceMetrics)
                 {
@@ -200,15 +192,16 @@ namespace Microsoft.OpenTelemetry.Export
                                     var labels = dp.Labels.Select(k => $"{k.Key}={k.Value}").ToList();
                                     labels.Sort();
 
-                                    records.Add((
-                                        resource,
-                                        meterName,
-                                        meterVersion,
-                                        metric.Name,
-                                        $"{{{String.Join("|", labels)}}}",
-                                        dp.TimeUnixNano,
-                                        $"{dp.Value}"
-                                    ));
+                                    records.Add(new ParseRecord()
+                                    {
+                                        resource = resource,
+                                        meterName = meterName,
+                                        meterVersion = meterVersion,
+                                        name = metric.Name,
+                                        label = $"{{{String.Join("|", labels)}}}",
+                                        timestamp = dp.TimeUnixNano,
+                                        value = $"{dp.Value}"
+                                    });
                                 }
                             }
                         }
@@ -222,20 +215,33 @@ namespace Microsoft.OpenTelemetry.Export
                                     var labels = dp.Labels.Select(k => $"{k.Key}={k.Value}").ToList();
                                     labels.Sort();
 
-                                    records.Add((
-                                        resource,
-                                        meterName,
-                                        meterVersion,
-                                        metric.Name,
-                                        $"{{{String.Join("|", labels)}}}",
-                                        dp.TimeUnixNano,
-                                        $"{dp.Value}"
-                                    ));
+                                    records.Add(new ParseRecord()
+                                    {
+                                        resource = resource,
+                                        meterName = meterName,
+                                        meterVersion = meterVersion,
+                                        name = metric.Name,
+                                        label = $"{{{String.Join("|", labels)}}}",
+                                        timestamp = dp.TimeUnixNano,
+                                        value = $"{dp.Value}"
+                                    });
                                 }
                             }
                         }
                     }
                 }
+            }
+
+            return records.ToArray();
+        }
+
+        public void Receive(byte[] bytes)
+        {
+            if (bytes.Length > 0)
+            {
+                Console.WriteLine($"Received {bytes.Length} bytes");
+
+                var records = ParsePayload(bytes);
 
                 // Sort and Display
 
@@ -261,6 +267,17 @@ namespace Microsoft.OpenTelemetry.Export
                     Console.WriteLine(rec);
                 }
             }
+        }
+
+        public struct ParseRecord
+        {
+            public string resource;
+            public string meterName;
+            public string meterVersion;
+            public string name;
+            public string label;
+            public ulong timestamp;
+            public string value;
         }
     
     }
