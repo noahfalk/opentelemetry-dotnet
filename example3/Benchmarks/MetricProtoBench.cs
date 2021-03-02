@@ -14,21 +14,21 @@ BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
 Intel Core i7-1065G7 CPU 1.30GHz, 1 CPU, 8 logical and 4 physical cores
 .NET Core SDK=5.0.103
   [Host]     : .NET Core 5.0.3 (CoreCLR 5.0.321.7212, CoreFX 5.0.321.7212), X64 RyuJIT
-  Job-LQLIMJ : .NET Core 5.0.3 (CoreCLR 5.0.321.7212, CoreFX 5.0.321.7212), X64 RyuJIT
+  Job-GMTSFC : .NET Core 5.0.3 (CoreCLR 5.0.321.7212, CoreFX 5.0.321.7212), X64 RyuJIT
 
-IterationCount=10  LaunchCount=2  WarmupCount=2
+IterationCount=15  LaunchCount=3  WarmupCount=3
 
 |         Method |     Mean |    Error |   StdDev |   Gen 0 |  Gen 1 | Gen 2 | Allocated |
 |--------------- |---------:|---------:|---------:|--------:|-------:|------:|----------:|
-|     SendMetric | 39.46 us | 0.319 us | 0.342 us |  7.6294 |      - |     - |  31.23 KB |
-|    SendMetric2 | 45.46 us | 3.698 us | 4.111 us |  7.9956 | 0.0610 |     - |   32.8 KB |
-|  ReceiveMetric | 50.65 us | 3.158 us | 3.379 us | 14.2822 | 0.0610 |     - |  58.52 KB |
-| ReceiveMetric2 | 48.54 us | 3.062 us | 3.403 us | 14.6484 |      - |     - |  60.09 KB |
+|     SendMetric | 40.98 us | 0.601 us | 1.113 us |  7.6294 |      - |     - |  31.23 KB |
+|    SendMetric2 | 40.14 us | 0.328 us | 0.592 us |  7.9956 | 0.0610 |     - |   32.8 KB |
+|  ReceiveMetric | 49.04 us | 0.623 us | 1.185 us | 14.2822 | 0.0610 |     - |  58.52 KB |
+| ReceiveMetric2 | 48.42 us | 0.846 us | 1.547 us | 14.6484 |      - |     - |  60.09 KB |
 */
 
 namespace MyBenchmark
 {
-    [SimpleJob(launchCount: 2, warmupCount: 2, targetCount: 10)]
+    [SimpleJob(launchCount: 3, warmupCount: 3, targetCount: 15)]
     [MemoryDiagnoser]
     public class MetricProtoBench
     {
