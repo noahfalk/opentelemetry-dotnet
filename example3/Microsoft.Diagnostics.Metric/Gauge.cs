@@ -13,6 +13,11 @@ namespace Microsoft.Diagnostics.Metric
         {
         }
 
+        public Gauge(string libname, string libver, string name, Dictionary<string, string> staticLabels) :
+            base(libname, libver, name, staticLabels, Array.Empty<string>())
+        {
+        }
+
         public Gauge(string libname, string libver, string name, string[] labelNames) 
             : base(libname, libver, name, labelNames)
         {
