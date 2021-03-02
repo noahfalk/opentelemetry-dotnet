@@ -1,6 +1,8 @@
-# Prometheus
+# Coding Examples
 
-```
+## Prometheus
+
+``` java
 import io.prometheus.client.Counter;
 class YourClass {
   static final Counter requests = Counter.build()
@@ -11,15 +13,30 @@ class YourClass {
   void processRequest() {
     requests.inc();
     // Your code here.
+
+    // public void inc(double amt)
+  }
+}
+```
+
+``` java
+class YourClass {
+  static final Gauge inprogressRequests = Gauge.build()
+     .name("inprogress_requests").help("Inprogress requests.").register();
+
+  void processRequest() {
+    inprogressRequests.inc();
+    // Your code here.
+    inprogressRequests.dec();
   }
 }
 ```
 
 Types: Counter, Guage, Summary, Histogram
 
-# Micrometer
+## Micrometer
 
-```
+``` java
 MeterRegistry registry = new JmxMeterRegistry(new JmxConfig() {
     @Override
     public String get(String s) {
@@ -38,11 +55,24 @@ counter.increment(); // increment by one
 counter.increment(2.5);
 ```
 
+``` java
+
+// A gauge can be made to track any java.lang.Number subtype that is settable, such as 
+// AtomicInteger and AtomicLong found in java.util.concurrent.atomic and similar types like Guava’s AtomicDouble.
+
+// maintain a reference to myGauge
+AtomicInteger myGauge = registry.gauge("numberGauge", new AtomicInteger(0));
+
+// ... elsewhere you can update the value it holds using the object reference
+myGauge.set(27);
+myGauge.set(11);
+```
+
 Types: Counter, Guage, Timer, Distrubution Summary, Long Task Timer, Histogram and Percentiles
 
-# DropWizard
+## DropWizard
 
-```
+``` java
   package sample;
   import com.codahale.metrics.*;
   import java.util.concurrent.TimeUnit;
@@ -72,11 +102,42 @@ Types: Counter, Guage, Timer, Distrubution Summary, Long Task Timer, Histogram a
   }
 ```
 
+``` java
+public class QueueManager {
+    private final Queue queue;
+
+    public QueueManager(MetricRegistry metrics, String name) {
+        this.queue = new Queue();
+        metrics.register(MetricRegistry.name(QueueManager.class, name, "size"),
+                         new Gauge<Integer>() {
+                             @Override
+                             public Integer getValue() {
+                                 return queue.size();
+                             }
+                         });
+    }
+}
+```
+
+``` java
+private final Counter pendingJobs = metrics.counter(name(QueueManager.class, "pending-jobs"));
+
+public void addJob(Job job) {
+    pendingJobs.inc();
+    queue.offer(job);
+}
+
+public Job takeJob() {
+    pendingJobs.dec();
+    return queue.take();
+}
+```
+
 Types: Counter, Guage, Timer, Histogram, Health Check
 
-# DogStatsD
+## DogStatsD
 
-```
+``` java
 import com.timgroup.statsd.NonBlockingStatsDClientBuilder;
 import com.timgroup.statsd.StatsDClient;
 import java.util.Random;
@@ -104,11 +165,40 @@ public class DogStatsdClient {
 }
 ```
 
+``` cs
+using StatsdClient;
+using System;
+
+public class DogStatsdClient
+{
+    public static void Main()
+    {
+        var dogstatsdConfig = new StatsdConfig
+        {
+            StatsdServerName = "127.0.0.1",
+            StatsdPort = 8125,
+        };
+
+        using (var dogStatsdService = new DogStatsdService())
+        {
+            dogStatsdService.Configure(dogstatsdConfig);
+            var random = new Random(0);
+
+            for (int i = 0; i < 10; i--)
+            {
+                dogStatsdService.Gauge("example_metric.gauge", i, tags: new[] {"environment:dev"});
+                System.Threading.Thread.Sleep(100000);
+            }
+        }
+    }
+}
+```
+
 Types: Count, Rate, Gauge, Histogram, Distribution
 
-# New Relic
+## New Relic
 
-```
+``` java
 public class CountExample {
 
   private static final ThreadLocalRandom random = ThreadLocalRandom.current();
@@ -164,9 +254,9 @@ public class CountExample {
 
 Types: Count, Gauge, Summary
 
-# AWS CloudWatch
+## AWS CloudWatch
 
-```
+``` bash
 aws cloudwatch put-metric-data --metric-name Buffers --namespace MyNameSpace --unit Bytes --value 231434333 --dimensions InstanceId=1-23456789,InstanceType=m1.small
 
 aws cloudwatch put-metric-data --metric-name PageViewCount --namespace MyService --value 2 --timestamp 2016-10-20T12:00:00.000Z
@@ -178,9 +268,9 @@ aws cloudwatch put-metric-data --metric-name PageViewCount --namespace MyService
 
 Types: Gauge
 
-# Azure Monitor: Application Insigts
+## Azure Monitor: Application Insigts
 
-```
+``` cs
 private TelemetryClient telemetry = new TelemetryClient();
 
 var sample = new MetricTelemetry();
@@ -200,9 +290,9 @@ telemetry.TrackEvent("WinGame", properties, metrics);
 
 Types: Gauge
 
-# MDM IFx
+## MDM IFx
 
-```
+``` cs
 MdmMetricController.AddDefaultDimension("FixedDim", "FixedDimValue");
 MdmMetricController.StartMetricPublication();
 
