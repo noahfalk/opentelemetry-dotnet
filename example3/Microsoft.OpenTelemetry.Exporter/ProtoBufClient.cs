@@ -26,7 +26,7 @@ namespace Microsoft.OpenTelemetry.Export
             return resources;
         }
 
-        public byte[] Send(ExportItem[] items)
+        public byte[] Send(ExportItem[] items, bool isMetric = false)
         {
             var groups = items.GroupBy(
                 k => (k.LibName, k.LibVersion),
@@ -45,10 +45,21 @@ namespace Microsoft.OpenTelemetry.Export
                 // Add all the ExportItems...
                 foreach (var item in group.items)
                 {
-                    var metrics = BuildMetric(item);
-                    if (metrics is not null)
+                    if (isMetric)
                     {
-                        instMetric.Metrics.AddRange(metrics);
+                        var metrics = BuildMetric(item);
+                        if (metrics is not null)
+                        {
+                            instMetric.Metrics.AddRange(metrics);
+                        }
+                    }
+                    else
+                    {
+                        var metrics = BuildMetric2(item);
+                        if (metrics is not null)
+                        {
+                            instMetric.Metrics2.AddRange(metrics);
+                        }
                     }
                 }
 
@@ -112,6 +123,43 @@ namespace Microsoft.OpenTelemetry.Export
             return metrics.ToArray();
         }
 
+        public Metric2[] BuildMetric2(ExportItem item)
+        {
+            var metrics = new List<Metric2>();
+
+            if (item.AggregationConfig is SumAggregation)
+            {
+                foreach (var d in item.AggData)
+                {
+                    Metric2 metric = new Metric2();
+                    metric.Name = $"{item.MeterName}{{_{d.name}}}";
+                    var sum = new Sum();
+                    metric.Sum = sum;
+                    sum.IsMonotonic = true;
+                    var datapoints = sum.DoubleDataPoints;
+
+                    var datapoint = new DoubleDataPoint();
+                    datapoint.StartTimeUnixNano = (ulong) item.dt.ToUnixTimeMilliseconds() * 100000;
+                    datapoint.TimeUnixNano = (ulong) item.dt.ToUnixTimeMilliseconds() * 100000;
+
+                    foreach (var l in item.Labels.GetLabels())
+                    {
+                        var kv = new StringKeyValue();
+                        kv.Key = l.name;
+                        kv.Value = l.value;
+                        datapoint.Labels.Add(kv);
+                    }
+
+                    datapoint.Value = double.Parse(d.value);
+                    datapoints.Add(datapoint);
+
+                    metrics.Add(metric);
+                }
+            }
+
+            return metrics.ToArray();
+        }
+
         public void Receive(byte[] bytes)
         {
             if (bytes.Length > 0)
@@ -148,6 +196,28 @@ namespace Microsoft.OpenTelemetry.Export
                             if (metric.DoubleSum is not null)
                             {
                                 foreach (var dp in metric.DoubleSum.DataPoints)
+                                {
+                                    var labels = dp.Labels.Select(k => $"{k.Key}={k.Value}").ToList();
+                                    labels.Sort();
+
+                                    records.Add((
+                                        resource,
+                                        meterName,
+                                        meterVersion,
+                                        metric.Name,
+                                        $"{{{String.Join("|", labels)}}}",
+                                        dp.TimeUnixNano,
+                                        $"{dp.Value}"
+                                    ));
+                                }
+                            }
+                        }
+
+                        foreach (var metric in instMetric.Metrics2)
+                        {
+                            if (metric.Sum is not null)
+                            {
+                                foreach (var dp in metric.Sum.DoubleDataPoints)
                                 {
                                     var labels = dp.Labels.Select(k => $"{k.Key}={k.Value}").ToList();
                                     labels.Sort();
