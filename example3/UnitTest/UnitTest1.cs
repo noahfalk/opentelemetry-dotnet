@@ -46,5 +46,40 @@ namespace UnitTest
             //Console.WriteLine(BitConverter.ToString(bytes2));
             client.Receive(bytes2);
         }
+
+        [Fact]
+        public void OTelBasic()
+        {
+            var provider = new MetricProvider()
+                .AddExporter(new ConsoleExporter("Test", 1000))
+                .Build();
+
+            var meter = MeterProvider.Global.GetMeter<UnitTest1>();
+            var counter = meter.CreateCounter<int>("request", "name", "type");
+
+            counter.Add(10, "nameValue", "typeValue");
+            counter.Add(100, "nameValue2", "typeValue2");
+
+            provider.Stop();
+        }
+
+        [Fact]
+        public void OTelBasic2()
+        {
+            var meter = MeterProvider.Global.GetMeter<UnitTest1>();
+            var counter = meter.CreateCounter<int>("request", "name", "type");
+
+            counter.Add(50, "noop", "noop");
+
+            var provider = new MetricProvider()
+                .AddExporter(new ConsoleExporter("Test", 1000))
+                .Build();
+            MeterProvider.SetMeterProvider(new MeterProvider());
+
+            counter.Add(10, "nameValue", "typeValue");
+            counter.Add(100, "nameValue2", "typeValue2");
+
+            provider.Stop();
+        }
     }
 }

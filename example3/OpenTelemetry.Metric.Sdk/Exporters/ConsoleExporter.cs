@@ -32,6 +32,7 @@ namespace OpenTelemetry.Metric.Sdk
         public override void BeginFlush()
         {
             flush = true;
+            Process();
         }
 
         public override void Start(CancellationToken token)
@@ -62,11 +63,11 @@ namespace OpenTelemetry.Metric.Sdk
 
             var que = Interlocked.Exchange(ref queue, new ConcurrentQueue<ExportItem>());
 
-            var sortedGroups = que.GroupBy(k => k.MeterName).OrderBy(g => g.Key);
+            var sortedGroups = que.GroupBy(k => $"{k.LibName} | {k.LibVersion} | {k.MeterName}").OrderBy(g => g.Key);
 
             foreach (var group in sortedGroups)
             {
-                Console.WriteLine($"{group.Key}");
+                Console.WriteLine(group.Key);
 
                 var items = new List<string>();
 

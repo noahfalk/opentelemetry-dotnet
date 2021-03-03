@@ -10,6 +10,8 @@ namespace SimpleExamples
     class ObservableCounter_DynamicLabels_Example
     {
         ObservableCounter _hatsSoldCounter = new ObservableCounter(
+            libname: "SimpleExamples",
+            libver: "1.0.0",
             name: "HatCo.ColoredHatsSold",
             labelNames: new string[] { "Color" },
             observeValues: o =>

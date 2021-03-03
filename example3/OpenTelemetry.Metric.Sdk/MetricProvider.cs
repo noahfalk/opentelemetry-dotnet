@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using System.Threading;
-using Microsoft.Diagnostics.Metric;
 using System.Net;
+using Microsoft.Diagnostics.Metric;
+using OpenTelemetry.Metric.Api;
 
 namespace OpenTelemetry.Metric.Sdk
 {
