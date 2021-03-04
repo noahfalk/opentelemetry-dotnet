@@ -96,18 +96,12 @@ namespace UnitTest
         public void OTelDI()
         {
             var host = Host.CreateDefaultBuilder()
-                .ConfigureServices((services) =>
+                .ConfigureServices((hostContext, services) =>
                 {
-                    services.AddLogging((conf) =>
-                    {
-                        conf.AddSimpleConsole((logconf) =>
-                        {
-                            logconf.SingleLine = true;
-                        });
-                    });
                     services.AddScoped<IMeter>((srvprov) => {
-                        return new DotNetMeter("test", "1.0.0");
+                        return MeterProvider.Global.GetMeter<UnitTest1>();
                     });
+
                     services.AddHostedService<MyService>();
                 })
                 .Build();
@@ -116,15 +110,13 @@ namespace UnitTest
                 .AddExporter(new ConsoleExporter("Test", 1000))
                 .Build();
 
-            var task = host.RunAsync();
+            host.RunAsync();
 
             Task.Delay(1000).Wait();
 
             host.StopAsync().Wait();
 
             provider1.Stop();
-
-            Console.WriteLine("Done");
         }
 
         public class MyService : IHostedService
@@ -134,7 +126,7 @@ namespace UnitTest
             Task task;
             CancellationTokenSource cts = new();
 
-            public MyService(ILogger<MyService> logger, IMeter meter, IHostApplicationLifetime appLifetime)
+            public MyService(ILogger<MyService> logger, IMeter meter)
             {
                 this.logger = logger;
                 this.meter = meter;
@@ -142,32 +134,33 @@ namespace UnitTest
 
             public Task StartAsync(CancellationToken cancellationToken)
             {
-                task = Task.Run(async () => {
-                    logger.LogInformation("Service Started...");
-
-                    var counter = meter.CreateCounter<int>("request", "name", "type");
-
-                    counter.Add(10, "nameValue", "typeValue");
-
-                    while (!cts.Token.IsCancellationRequested)
-                    {
-                        logger.LogInformation("Waiting...");
-                        await Task.Delay(300);
-                    }
-
-                    counter.Add(100, "nameValue2", "typeValue2");
-
-                    logger.LogInformation("Service Stopped...");
-                });
-
-                return task;
+                task = Task.Run(RunTask);
+                return Task.CompletedTask;
             }
 
             public Task StopAsync(CancellationToken cancellationToken)
             {
                 cts.Cancel();
-
                 return task;
+            }
+
+            public async Task RunTask()
+            {
+                logger.LogInformation("Started...");
+
+                var counter = meter.CreateCounter<int>("request", "name", "value");
+
+                counter.Add(10, "nameValue", "typeValue");
+
+                while (!cts.Token.IsCancellationRequested)
+                {
+                    logger.LogInformation("Waiting...");
+                    await Task.Delay(400);
+                }
+
+                counter.Add(100, "nameValue2", "typeValue2");
+
+                logger.LogInformation("Stopped...");
             }
         }
     }
