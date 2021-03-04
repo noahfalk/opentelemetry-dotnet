@@ -1,11 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Xunit;
 using Microsoft.Diagnostics.Metric;
 using Microsoft.OpenTelemetry.Export;
 using OpenTelemetry.Metric.Api;
 using OpenTelemetry.Metric.Sdk;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace UnitTest
 {
@@ -69,17 +74,101 @@ namespace UnitTest
             var meter = MeterProvider.Global.GetMeter<UnitTest1>();
             var counter = meter.CreateCounter<int>("request", "name", "type");
 
-            counter.Add(50, "noop", "noop");
-
-            var provider = new MetricProvider()
+            var provider1 = new MetricProvider()
                 .AddExporter(new ConsoleExporter("Test", 1000))
                 .Build();
-            MeterProvider.SetMeterProvider(new MeterProvider());
+
+            counter.Add(50, "noop", "noop");
+
+            var provider2 = new MetricProvider()
+                .AddExporter(new ConsoleExporter("Test", 1000))
+                .Build();
+            //MeterProvider.SetMeterProvider(new MeterProvider());
 
             counter.Add(10, "nameValue", "typeValue");
             counter.Add(100, "nameValue2", "typeValue2");
 
-            provider.Stop();
+            provider1.Stop();
+            provider2.Stop();
+        }
+
+        [Fact]
+        public void OTelDI()
+        {
+            var host = Host.CreateDefaultBuilder()
+                .ConfigureServices((services) =>
+                {
+                    services.AddLogging((conf) =>
+                    {
+                        conf.AddSimpleConsole((logconf) =>
+                        {
+                            logconf.SingleLine = true;
+                        });
+                    });
+                    services.AddScoped<IMeter>((srvprov) => {
+                        return new DotNetMeter("test", "1.0.0");
+                    });
+                    services.AddHostedService<MyService>();
+                })
+                .Build();
+
+            var provider1 = new MetricProvider()
+                .AddExporter(new ConsoleExporter("Test", 1000))
+                .Build();
+
+            var task = host.RunAsync();
+
+            Task.Delay(1000).Wait();
+
+            host.StopAsync().Wait();
+
+            provider1.Stop();
+
+            Console.WriteLine("Done");
+        }
+
+        public class MyService : IHostedService
+        {
+            ILogger logger;
+            IMeter meter;
+            Task task;
+            CancellationTokenSource cts = new();
+
+            public MyService(ILogger<MyService> logger, IMeter meter, IHostApplicationLifetime appLifetime)
+            {
+                this.logger = logger;
+                this.meter = meter;
+            }
+
+            public Task StartAsync(CancellationToken cancellationToken)
+            {
+                task = Task.Run(async () => {
+                    logger.LogInformation("Service Started...");
+
+                    var counter = meter.CreateCounter<int>("request", "name", "type");
+
+                    counter.Add(10, "nameValue", "typeValue");
+
+                    while (!cts.Token.IsCancellationRequested)
+                    {
+                        logger.LogInformation("Waiting...");
+                        await Task.Delay(300);
+                    }
+
+                    counter.Add(100, "nameValue2", "typeValue2");
+
+                    logger.LogInformation("Service Stopped...");
+                });
+
+                return task;
+            }
+
+            public Task StopAsync(CancellationToken cancellationToken)
+            {
+                cts.Cancel();
+
+                return task;
+            }
         }
     }
 }
