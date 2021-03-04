@@ -163,5 +163,34 @@ namespace UnitTest
                 logger.LogInformation("Stopped...");
             }
         }
+
+        [Fact]
+        public void OTelSimpleDI()
+        {
+            var services = new ServiceCollection();
+            services.AddSingleton<IMeter>(MeterProvider.Global.GetMeter<UnitTest1>());
+            var serviceProvider = services.BuildServiceProvider();
+
+            Task.Run(async () => {
+                await Task.Delay(200);
+
+                var meter = serviceProvider.GetService<IMeter>();
+                var counter = meter.CreateCounter<int>("request", "dim1");
+
+                for (int n = 0; n < 5; n++)
+                {
+                    counter.Add(10, "dimval1");
+                    await Task.Delay(200);
+                }
+            });
+
+            var metricProvider = new MetricProvider()
+                .AddExporter(new ConsoleExporter("Test", 1000))
+                .Build();
+
+            Task.Delay(2000).Wait();
+
+            metricProvider.Stop();
+        }
     }
 }
