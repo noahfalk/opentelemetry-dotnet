@@ -578,3 +578,55 @@ alternatives we are selecting between I'm happy to restore it and discuss.
 
 - This design pattern has been well established with .NET runtime.  (i.e. EventCounter, ETW, TraceProvider, etc...)
 - This is a potential argument for using a factory pattern. Should we fold this into that question?
+
+
+## 3/5/2021
+
+Items:
+
+- Concept of Labelset / KV Pair / Dictionary / Columnar vs Row-wise - (pre-defined vs ad-hoc)
+  - What is Counter1D / Counter2D
+
+  - **We prefer Pre-defined, but can offer ad-hoc as needed**
+
+  - String vs object?
+    - Need to limit type of Objects if we support objects
+    - **We are likely fine if we have DimValue to be strongly typed**
+
+- Does .NET need aggregation?
+    - How would we expose .NET aggregation to OTel?
+    - **.NET will have Agg type for .NET usage. May expose for public usage**
+    - **.NET Agg will be another MetricListener**
+
+- int/double data types?  Focusing on API.
+  - **Check with MDM if we can just carry as double**
+  - **Generics maybe ok. Need to check perf**
+  - **Need to make sure we don't have un-expected lost of precision**
+
+- EventSource/EventListner.  How to map to MeterProvider?
+  - **Avoid recursive/reentrant calls to Metrics API causing deadlocks**
+
+- Naming.  Do we create instances or return existing per identity
+
+- What counter types do we have.  How to deal with OTel specific semantics?
+
+
+
+counter.add(value, fixed_dimensions, flexible_dimensions)
+    
+counter.add(value, flexible_dimensions)
+    
+var reiley_counter = new Counter<int>("reiley.counter", "food", "price");
+    
+reiley_counter.add(1, ("tomato", 1.5))
+    
+reiley_counter.add(1, ("tomato", 1.5), {​​​​​"expired": yes}​​​​​)
+    
+reiley_counter.add(1, {​​​​​"food": "tomato", "price": 1.5}​​​​​)
+    
+reiley_counter.add(1, {​​​​​"food": "tomato", "price": 1.5, "expired": true}​​​​​)
+    
+var cijo_counter = new Counter<int>("cijo.counter");
+    
+cijo_counter.add(1, {​​​​​"food": "potato", "price: 1.5}​​​​​)
+
