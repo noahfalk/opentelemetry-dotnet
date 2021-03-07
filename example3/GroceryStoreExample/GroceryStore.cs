@@ -21,16 +21,23 @@ namespace GroceryStoreExample
         {
             this.store_name = store_name;
 
-            // Setup Metrics
-            var staticLabels = new Dictionary<string, string>
-            {
-                { "Store", store_name }
-            };
+            // TODO: Is GroceryStore a singleton? This example is only good guidance if it is.
+            // Otherwise we'd probably want MetricSource and the counters to be statics and
+            // Store should be a dimension on the counters rather than a static label.
 
-            item_counter = new Counter("GroceryStoreExample", "1.0.0", "GroceryStore.item_counter", staticLabels,
-                new string[] { "Item", "Customer" });
-            cash_counter = new Counter("GroceryStoreExample", "1.0.0", "GroceryStore.cash_counter", staticLabels,
-                new string[] { "Customer" });
+            MetricSource source = new MetricSource("GroceryStore", "1.0.0",
+                new Dictionary<string, string>()
+                {
+                    { "Store", store_name }
+                });
+
+
+            item_counter = new Counter("GroceryStore.item_counter",
+                new string[] { "Item", "Customer" },
+                source);
+            cash_counter = new Counter("GroceryStore.cash_counter",
+                new string[] { "Customer" },
+                source);
         }
 
         public void process_order(string customer, params (string name, int qty)[] items)

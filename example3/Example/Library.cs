@@ -9,7 +9,7 @@ namespace MyLibrary
     public class Library
     {
 
-        static Counter s_c1 = new Counter("MyLibrary", "1.0.0", "c1", new string[] { "Label1", "Label2" });
+        static Counter s_c1 = new Counter("c1", new string[] { "Label1", "Label2" });
 
         LabeledCounter _c1;
         Counter counter_request;
@@ -28,17 +28,17 @@ namespace MyLibrary
                 { "LibraryInstanceName", name }
             };
 
-            counter_request = new Counter(name, "1.0.0", "request2", staticLabels);
+            counter_request = new Counter("request2", staticLabels);
 
-            gauge_qsize = new Gauge(name, "1.0.0", "queue_size");
+            gauge_qsize = new Gauge("queue_size");
 
             //TODO: make this async
-            counter_request3 = new Counter(name, "1.0.0", "request3");
+            counter_request3 = new Counter("request3");
 
-            counter_request2 = new Counter(name, "1.0.0", "requests", staticLabels,
+            counter_request2 = new Counter("requests", staticLabels,
                 new string[] { "OperNum" });
 
-            var counter_registered = new Counter(name, "1.0.0", "registered",
+            var counter_registered = new Counter("registered",
                 labelNames: new string[] { "Program", "LibraryInstanceName" });
             counter_registered.Add(1, "test", name);
         }

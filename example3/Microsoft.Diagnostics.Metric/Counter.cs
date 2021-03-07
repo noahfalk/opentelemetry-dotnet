@@ -8,23 +8,23 @@ namespace Microsoft.Diagnostics.Metric
 {
     public class Counter : Meter
     {
-        public Counter(string libname, string libver, string name) :
-            base(libname, libver, name, Array.Empty<string>())
+        public Counter(string name, MetricSource source = null) :
+            base(source, name, Array.Empty<string>())
         {
         }
 
-        public Counter(string libname, string libver, string name, Dictionary<string, string> staticLabels) :
-            base(libname, libver, name, staticLabels, Array.Empty<string>())
+        public Counter(string name, Dictionary<string, string> staticLabels, MetricSource source = null) :
+            base(source, name, staticLabels, Array.Empty<string>())
         {
         }
 
-        public Counter(string libname, string libver, string name, string[] labelNames) :
-            base(libname, libver, name, labelNames)
+        public Counter(string name, string[] labelNames, MetricSource source = null) :
+            base(source, name, labelNames)
         {
         }
 
-        public Counter(string libname, string libver, string name, Dictionary<string, string> staticLabels, string[] labelNames) :
-            base(libname, libver, name, staticLabels, labelNames)
+        public Counter(string name, Dictionary<string, string> staticLabels, string[] labelNames, MetricSource source = null) :
+            base(source, name, staticLabels, labelNames)
         {
         }
 

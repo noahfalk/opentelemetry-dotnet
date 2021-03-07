@@ -17,8 +17,7 @@ namespace Microsoft.Diagnostics.Metric
 
         ListenerSubscription[] _subscriptions = Array.Empty<ListenerSubscription>();
 
-        public abstract string LibName { get; }
-        public abstract string LibVersion { get; }
+        public abstract MetricSource Source { get; }
         public abstract string Name { get; }
         public abstract string[] LabelNames { get; }
         public abstract Dictionary<string, string> StaticLabels { get; }

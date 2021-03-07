@@ -9,7 +9,7 @@ namespace SimpleExamples
 {
     class ObservableCounter_CachedDynamicLabels_Example
     {
-        ObservableCounter _hatsSoldCounter = new ObservableCounter("SimpleExamples", "1.0.0", "HatCo.ColoredHatsSold.Cached", new string[] { "Color" });
+        ObservableCounter _hatsSoldCounter = new ObservableCounter("HatCo.ColoredHatsSold.Cached", new string[] { "Color" });
 
         LabeledObservableCounter _yellowHatsSoldCounter;
         LabeledObservableCounter _redHatsSoldCounter;

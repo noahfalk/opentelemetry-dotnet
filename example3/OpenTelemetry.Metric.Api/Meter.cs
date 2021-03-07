@@ -6,9 +6,11 @@ namespace OpenTelemetry.Metric.Api
     public interface IMeter
     {
         Counter CreateCounter(string name);
+        Counter CreateCounter(string name, params string[] dimNames);
         Counter CreateCounter(string name, Dictionary<string,string> labels);
         Counter CreateCounter(string name, Dictionary<string,string> labels, params string[] dimNames);
 
+        /*
         Counter1D<T> CreateCounter<T>(string name, string dn1);
         Counter1D<T> CreateCounter<T>(string name, Dictionary<string,string> labels, string dn1);
 
@@ -17,7 +19,7 @@ namespace OpenTelemetry.Metric.Api
 
         Counter3D<T> CreateCounter<T>(string name, string dn1, string dn2, string dn3);
         Counter3D<T> CreateCounter<T>(string name, Dictionary<string,string> labels, string dn1, string dn2, string dn3);
-
+        */
         Gauge CreateGauge(string name);
         Gauge CreateGauge(string name, Dictionary<string,string> labels);
         Gauge CreateGauge(string name, params string[] dimNames);
@@ -26,33 +28,40 @@ namespace OpenTelemetry.Metric.Api
 
     public class DotNetMeter : IMeter
     {
-        private string libname;
-        private string libver;
+        MetricSource _source;
 
         public DotNetMeter(string libname, string libver)
         {
-            this.libname = libname;
-            this.libver = libver;
+            _source = new MetricSource(libname, libver);
         }
 
         public Counter CreateCounter(string name)
         {
-            return new Counter(libname, libver, name);
+            return new Counter(name, _source);
         }
-        
+
+        public Counter CreateCounter(string name, params string[] dimNames)
+        {
+            return new Counter(name, dimNames, _source);
+        }
+
         public Counter CreateCounter(string name, Dictionary<string,string> labels)
         {
-            return new Counter(libname, libver, name, labels);
+            return new Counter(name, labels, _source);
         }
 
         public Counter CreateCounter(string name, Dictionary<string,string> labels, string[] dimNames)
         {
-            return new Counter(libname, libver, name, labels, dimNames);
+            return new Counter(name, labels, dimNames, _source);
         }
+
+        /* Including the dimension eliminates mistakes with wrong number of params but wrong order
+         * is still possible which Bogdan was also worried about. I'm going to experiment with
+         * stronger typing to address that concern
 
         public Counter1D<T> CreateCounter<T>(string name, string d1)
         {
-            return new Counter1D<T>(libname, libver, name, d1);
+            return new Counter1D<T>(name, d1);
         }
 
         public Counter1D<T> CreateCounter<T>(string name, Dictionary<string,string> labels, string d1)
@@ -78,29 +87,30 @@ namespace OpenTelemetry.Metric.Api
         public Counter3D<T> CreateCounter<T>(string name, Dictionary<string,string> labels, string d1, string d2, string d3)
         {
             return new Counter3D<T>(libname, libver, name, labels, d1, d2, d3);
-        }
+        }*/
 
         public Gauge CreateGauge(string name)
         {
-            return new Gauge(libname, libver, name);
+            return new Gauge(name, _source);
         }
 
         public Gauge CreateGauge(string name, Dictionary<string,string> labels)
         {
-            return new Gauge(libname, libver, name, labels);
+            return new Gauge(name, labels, _source);
         }
 
         public Gauge CreateGauge(string name, params string[] dimNames)
         {
-            return new Gauge(libname, libver, name, dimNames);
+            return new Gauge(name, dimNames, _source);
         }
 
         public Gauge CreateGauge(string name, Dictionary<string,string> labels, params string[] dimNames)
         {
-            return new Gauge(libname, libver, name, labels, dimNames);
+            return new Gauge(name, labels, dimNames, _source);
         }
     }
 
+    /*
     public class Counter1D<T>
     {
         Counter counter;
@@ -189,5 +199,5 @@ namespace OpenTelemetry.Metric.Api
 
             counter.Add(val, new string[] { dv1, dv2, dv3 });
         }
-    }
+    }*/
 }

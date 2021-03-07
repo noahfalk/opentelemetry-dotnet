@@ -8,23 +8,23 @@ namespace Microsoft.Diagnostics.Metric
 {
     public class Gauge : Meter
     {
-        public Gauge(string libname, string libver, string name) 
-            : base(libname, libver, name, Array.Empty<string>())
+        public Gauge(string name, MetricSource source = null) 
+            : base(source, name, Array.Empty<string>())
         {
         }
 
-        public Gauge(string libname, string libver, string name, Dictionary<string, string> staticLabels) :
-            base(libname, libver, name, staticLabels, Array.Empty<string>())
+        public Gauge(string name, Dictionary<string, string> staticLabels, MetricSource source = null) :
+            base(source, name, staticLabels, Array.Empty<string>())
         {
         }
 
-        public Gauge(string libname, string libver, string name, string[] labelNames) 
-            : base(libname, libver, name, labelNames)
+        public Gauge(string name, string[] labelNames, MetricSource source = null) 
+            : base(source, name, labelNames)
         {
         }
 
-        public Gauge(string libname, string libver, string name, Dictionary<string,string> staticLabels, string[] labelNames) 
-            : base(libname, libver, name, staticLabels, labelNames)
+        public Gauge(string name, Dictionary<string,string> staticLabels, string[] labelNames, MetricSource source = null) 
+            : base(source, name, staticLabels, labelNames)
         {
         }
 

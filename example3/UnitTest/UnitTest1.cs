@@ -60,7 +60,7 @@ namespace UnitTest
                 .Build();
 
             var meter = MeterProvider.Global.GetMeter<UnitTest1>();
-            var counter = meter.CreateCounter<int>("request", "name", "type");
+            var counter = meter.CreateCounter("request", "name", "value");
 
             counter.Add(10, "nameValue", "typeValue");
             counter.Add(100, "nameValue2", "typeValue2");
@@ -72,7 +72,7 @@ namespace UnitTest
         public void OTelBasic2()
         {
             var meter = MeterProvider.Global.GetMeter<UnitTest1>();
-            var counter = meter.CreateCounter<int>("request", "name", "type");
+            var counter = meter.CreateCounter("request", "name", "value");
 
             var provider1 = new MetricProvider()
                 .AddExporter(new ConsoleExporter("Test", 1000))
@@ -148,7 +148,7 @@ namespace UnitTest
             {
                 logger.LogInformation("Started...");
 
-                var counter = meter.CreateCounter<int>("request", "name", "value");
+                var counter = meter.CreateCounter("request", "name", "value");
 
                 counter.Add(10, "nameValue", "typeValue");
 
@@ -175,7 +175,7 @@ namespace UnitTest
                 await Task.Delay(200);
 
                 var meter = serviceProvider.GetService<IMeter>();
-                var counter = meter.CreateCounter<int>("request", "dim1");
+                var counter = meter.CreateCounter("request", "dim1");
 
                 for (int n = 0; n < 5; n++)
                 {

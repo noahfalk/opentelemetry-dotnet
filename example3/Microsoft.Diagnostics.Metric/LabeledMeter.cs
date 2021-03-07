@@ -19,8 +19,7 @@ namespace Microsoft.Diagnostics.Metric
     public abstract class LabeledMeter<T> : LabeledMeter where T : Meter
     {
         public T Unlabeled { get; }
-        public override string LibName => Unlabeled.LibName;
-        public override string LibVersion => Unlabeled.LibVersion;
+        public override MetricSource Source => Unlabeled.Source;
         public override string Name => Unlabeled.Name;
         public override Dictionary<string, string> StaticLabels => Unlabeled.StaticLabels;
         public override AggregationConfiguration DefaultAggregation => Unlabeled.DefaultAggregation;

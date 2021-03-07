@@ -93,8 +93,8 @@ namespace Example
             }));
 
             taskList.Add(Task.Run(async () => {
-                var sum = new Counter("Program.Test3", "1.0.0", "Sum");
-                var lastvalue = new Gauge("Program.Test3", "1.0.0", "Last");
+                var sum = new Counter("Program.Test3.Sum");
+                var lastvalue = new Gauge("Program.Test3.Last");
 
                 while (!token.IsCancellationRequested)
                 {
