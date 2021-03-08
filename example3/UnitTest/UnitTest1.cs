@@ -93,15 +93,12 @@ namespace UnitTest
         }
 
         [Fact]
-        public void OTelDI()
+        public async Task OTelDI()
         {
             var host = Host.CreateDefaultBuilder()
                 .ConfigureServices((hostContext, services) =>
                 {
-                    services.AddScoped<IMeter>((srvprov) => {
-                        return MeterProvider.Global.GetMeter<UnitTest1>();
-                    });
-
+                    services.AddSingleton<IMeter>(MeterProvider.Global.GetMeter<UnitTest1>());
                     services.AddHostedService<MyService>();
                 })
                 .Build();
@@ -110,11 +107,11 @@ namespace UnitTest
                 .AddExporter(new ConsoleExporter("Test", 1000))
                 .Build();
 
-            host.RunAsync();
+            var task = host.RunAsync();
 
-            Task.Delay(1000).Wait();
+            await Task.Delay(1000);
 
-            host.StopAsync().Wait();
+            await host.StopAsync();
 
             provider1.Stop();
         }
@@ -135,7 +132,7 @@ namespace UnitTest
             public Task StartAsync(CancellationToken cancellationToken)
             {
                 task = Task.Run(RunTask);
-                return Task.CompletedTask;
+                return task;
             }
 
             public Task StopAsync(CancellationToken cancellationToken)
@@ -148,7 +145,7 @@ namespace UnitTest
             {
                 logger.LogInformation("Started...");
 
-                var counter = meter.CreateCounter("request", "name", "value");
+                var counter = meter.CreateCounter<int>("request", "Dim1", "Dim2");
 
                 counter.Add(10, "nameValue", "typeValue");
 
@@ -158,7 +155,7 @@ namespace UnitTest
                     await Task.Delay(400);
                 }
 
-                counter.Add(100, "nameValue2", "typeValue2");
+                counter.Add(100, "DimVal1", "DimVal2");
 
                 logger.LogInformation("Stopped...");
             }
@@ -172,15 +169,19 @@ namespace UnitTest
             var serviceProvider = services.BuildServiceProvider();
 
             Task.Run(async () => {
+                // Need to get IServiceProvider
                 await Task.Delay(200);
 
-                var meter = serviceProvider.GetService<IMeter>();
-                var counter = meter.CreateCounter("request", "dim1");
-
-                for (int n = 0; n < 5; n++)
+                using (var scope = serviceProvider.CreateScope())
                 {
-                    counter.Add(10, "dimval1");
-                    await Task.Delay(200);
+                    var meter = scope.ServiceProvider.GetService<IMeter>();
+                    var counter = meter.CreateCounter<int>("request", "dim1");
+
+                    for (int n = 0; n < 5; n++)
+                    {
+                        counter.Add(10, "dimval1");
+                        await Task.Delay(200);
+                    }
                 }
             });
 
