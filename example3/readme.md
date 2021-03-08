@@ -25,12 +25,8 @@ own Semantic. (i.e. Counter with Add(), ElapsedDuration as a IDisposable, etc...
 - OTel may implement and deliver counters (derived from .NET MetricBase) with it's
 own Semantic. (i.e. UpCounter with Inc(), ValueRecorder with Record(), etc...)
 
-- MetricBase will report datapoints into the .NET MetricSource interface
+- MetricBase will report datapoints to listeners via a MetricListener type
 (EventSource/EventListener model).  OTel SDK will attached as a MetricListeners.
-
-[Noah]: I agree with the Event sourcing principle but I would propose MetricBase is
-the implementation of the source concept in this pattern. So the data flow is:
-MetricBase -> Listener instead of MetricBase -> Source -> Listener.
 
 - SDKs will be opinionated!  Thus, datapoints will be interpreted based
 on it's counter "type" for aggregators, processors, exporters, etc...
@@ -62,15 +58,25 @@ libraries use terms like Gauge, Counter, and Histogram.
 ## What instruments should the API support?
 
 OpenTelemetry proposes Counter, UpDownCounter, ValueRecorder, SumObserver, UpDownSumObserver, and ValueObserver.
-Research into other libraries suggests these choices, both in terms of naming and functionality appear mostly
+Research into other libraries suggests these choices, both in terms of naming and functionality appear somewhat
 novel. Based on the spec description this set of six appears to be determined based on defining a taxonomy of
 'synchronous vs asynchronous', 'adding vs. grouping', and 'monotonic vs. non-monotonic' as a sub-category of
 'adding'. This created six combinations which were then named. While taxonomies are certainly orderly I am 
-skeptical how well most developers will related their goals to this particular breakdown. Other metric APIs that
+skeptical how well most developers will relate their goals to this particular breakdown. Other metric APIs that
 have considerable real world usage appear to have selected other patterns, likely driven by customer feedback.
 
 ## Do we need dedicated asynchronous instruments?
 
+Proposed answer: Yes we should have them. I'm still not understanding the scenario for ValueObserver but I'm on-board
+with at least an async sum and async gauge. The alternative pattern described below got messy for a few reasons:
+
+ - The implementing code gets unnecesarily split. The user is forced to author the constructor, a callback 
+   registration, and the body of the callback. This is 2-3 different locations in code to edit.
+ - The pre-aggregated sum replaces rather than adds to the previous sum so isn't substitutable for the original
+   synchronous sum instrument.
+ - There is no intuitive place in the API to put the callback event or registration API
+
+Original suggestion:
 The asynchronous instruments are designed to offer callback APIs rather than standard push based APIs. These
 callbacks are invoked at whatever frequency aggregated metric data is exported to consumers. However design-wise
 it appears unnecessarily complex to define a complete parallel set of instruments with individual callbacks when
@@ -131,6 +137,9 @@ mechanism) then batches would be allowed to contain any metric and there would b
 was safe to ignore the batch. Somewhere in the API or SDK some processing would need to record that the batch had
 started and stopped even if none of the metrics set inside the batch were being subscribed to.
 
+Note: I've heard two different rationales for batching, one is perf improvement and the other is atomicity. We
+should follow up and see if one of those was considered the dominant reason or if both matter. I'm not sure how
+much perf benefit we could realistically get from it.
 
 ## Should metric types be represented as interfaces or classes in .NET?
 
@@ -170,7 +179,7 @@ to be performance critical so there is no reason for us to potentially worsen pe
 
 ## Do users create a new Metric directly with 'new' or is the creation indirected through a factory (or both)? 
 
-Proposed answer: Use 'new'
+Proposed answer: Use 'new' (and maybe also have a factory option purely to harmonize with the OT spec?)
 
 #### 'new' option
 ````C#
@@ -240,14 +249,12 @@ Guage g = new Gauge("temperature");
     might have some small performance benefits, but probably not sufficient to justify API complexity on its
     own. Storing a subscriber list per metric costs at least one pointer per metric (to store a pointer to the
     list). A nieve implementation would likely cost ~5 pointers per metric because each metric would reference a
-    unique list object. However knowing that there are unlikely to be more than a few listeners ever registered
-    means there are also very few possible lists. A small intern table of <10 subscriber lists would probably be
-    all the unique lists most processes ever needed. Likewise there are increased CPU costs to enumerate a list
-    of potentially 1000s of metrics vs. 10s of factories, but listener subscribe/unsubscribe operations are
-    expected to be quite rare. The startup costs of even a large list of metrics is likely to be <1ms as long
-    as per-metric filter function is reasonably efficient. Not doing per-metric filtering might mean substantial
-    irrelevant data collection occurs during steady-state operation where the performance goals are likely much
-    higher.
+    unique list object. In return we can cache a per-metric per-listener cookie that can probably optimize away a
+    dictionary lookup. Likewise there are increased CPU costs to enumerate a list of potentially 1000s of metrics
+    vs. 10s of factories, but listener subscribe/unsubscribe operations are expected to be quite rare. The startup
+    costs of even a large list of metrics is likely to be <1ms as long as per-metric filter function is reasonably
+    efficient. Not doing per-metric filtering might mean substantial irrelevant data collection occurs during
+    steady-state operation where the performance goals are likely much higher.
   - Aggregating common metadata/configuration can be done through a factory, but it can also be done without a
     factory like this:
 ````C#
@@ -263,9 +270,15 @@ Counter c = new Counter(source, "hats-sold");
     a pretty straightforward and mechanical change. Its a subjective educated guess that users aren't going to
     be care about it and that overall they will appreciate the simplicty of 'new Counter()' instead. If we did
     see bad feedback we could always change course.
+  - Matching OT on other languages - this one is probably the strongest reason to do it assuming that OT folks aren't
+    going to give up on their desire for factory. In our case it would serve minimal purpose other than aligning API
+    shape. I'm still hesitant to eliminate the 'new' option if we did this as well because we'd lose extensibility
+    to derive from a metric and we'd lose the nice one-liner construction options for users that don't care about
+    defining their instrumentation library name. For 3rd party libraries the name is probably useful but for an app
+    developer putting metrics directly into an app they fully control it probably has little value.
 
 
-## Should we standardize that all dimension values are strings or do we need to allow a broader set of types?
+## Should we standardize that all dimension values are strings in the API or do we need to allow a broader set of types?
 
 Proposed answer: Yes, we should standardize dimension values as strings
 
@@ -275,7 +288,25 @@ allow users to pass in these other data types which made the API messier than it
 had designed for this requirement up-front. Metric dimension values appear similar to tags so it is
 natural to wonder would we be making the same mistake if we defined them to be strings?
 
-Email discussion:
+Based on continued experimentation and discussion we are certain that dimension values will be converted to strings
+before they go out on the wire so the question can be reframed "If the user has a dimension value that isn't a string,
+at what point does it get converted into a string?" There are a few places it could be converted:
+ 1. The developer could convert it before calling the API. If the SDK auto-collects it, the SDK could convert it at
+   the point it is being captured as a dimension.
+ 2. The .NET runtime could convert it before passing it to the listener. If the dev passed it in as object then
+   we probably paid to box it, otherwise the API used strong types and generics to avoid the box.
+ 3. The SDK could keep it strongly typed throughout the various label key manipulations and then convert it when
+   passing it to the exporter
+ 4. The exporter could convert it before putting it on the wire
+
+My preference (Noah) is to do (1) because it is simple and nearly the most performant. (2) where the label passes
+through the API as object requires boxing and also requires a string conversion which just makes it slower. (2)
+where the label passes through the API as a strongly typed generic adds considerable complexity (see the strongly
+typed labels question), questionable API usage improvement, and is also slower. (3)-(4) add even more complexity
+and potentially have a tiny perf improvement over starting with string to begin with.
+
+
+Some earlier Email discussion:
 
 From: Sergii Lavrinenko <selavrin@microsoft.com>
 
@@ -402,6 +433,62 @@ My answer would be yes – I think we should support other types (e.g. int), so 
 Regards，
 
 Reiley
+
+## Should we use strongly typed label structs instead of weakly typed string[], (string,string)[], Dictionary, etc?
+
+I did some experimenting (see the design_experiment_strong_type_label branch) and my conclusion so far is
+that although it is possible, I don't think the complexity is justified. There were two potential reasons
+to do it: better performance and make the API easier to use. For API usage the new pattern would have been:
+
+```C#
+struct MyLabelsType
+{
+    public string Color {get; set;}
+    public string Size {get; set;}
+}
+
+static Counter<MyLabelsType> s_hatsSold = new Counter<MyLabelsType>("HatsSold");
+
+public void Sold(string color, int size)
+{
+    s_hatsSold.Add(1, new MyLabelsType() { Color = color, Size = size });
+}
+```
+The strong typing makes it harder to mix up the dimensions at the recording callsite, but it also added
+4 more lines for the struct definition, extra generic arguments on the counter and a more verbose calling
+pattern when it is used. Usability-wise that seems OK but not great. I did also attempt to use ValueTuple
+ala:
+```C#
+static Counter<(string Color, string Size)> s_hatsSold = new("HatsSold");
+
+public void Sold(string color, int size)
+{
+    s_hatsSold.Add(1, (Color:color, Size:size));
+}
+```
+That seems much nicer but unforetunately it won't work. The names of the fields in the ValueTuple only
+exist at compile-time. What is emitted into the image is a Counter<ValueTuple`2>> and the fields of
+ValueTuple`2 are Item1 and Item2, not "Color" and "Size". This means we can't reflect over it to determine
+the dimension names. We could add back the string[] labelNames parameter to the constructor but it felt
+weird for the user to seeminly specify the names twice and it doesn't prevent the tuple and string[] names
+from being out-of-sync.
+
+The 2nd area I looked at was perf and again the results are mixed. Starting with a strongly typed struct
+and then converting it into a string[] at any point is worse than starting with a string[] up-front. If
+we only have reflection it was ~30ns worse for a 3 label struct, using LCG it is ~10ns worse. In order to
+break even, or perhaps even get a small perf gain the strong typing needs to be maintained all the way
+through selecting the Aggregations that will be updated. This means we need an generic APIs on every
+metric type, on the listener, and all through the SDK up to aggregation. This also means that SDK actions
+like selecting which subset of labels to key on, merging in new SDK labels from configuration, or modifying
+label values to reduce cardinality all have to operate in a strongly typed way. It would probably require
+a combination of generics, and ref.emit/LCG/source generators to implement. It also might have weird
+implications for app developers wanting to configure label value replacement functions because they now
+need to know what the type of the label is in addition to its name.
+
+Instead of this pursuing this path I'm now curious to explore if we can optimize a weakly typed API
+that takes an array (or perhaps a Span?) of (name,value) tuples. In theory these patterns require a
+non-performant sorting step but I am optimistic we can build a fast path when devs provide the tuples
+in the same order each time.
 
 
 ## Can we use double as our sole interchange type when communicating numeric measurements between instrumented code and SDK?
