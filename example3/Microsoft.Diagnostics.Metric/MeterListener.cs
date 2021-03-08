@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace Microsoft.Diagnostics.Metric
 {
@@ -38,6 +39,11 @@ namespace Microsoft.Diagnostics.Metric
         public void Dispose()
         {
             MeterCollection.Instance.RemoveListener(this);
+        }
+
+        internal protected virtual void RecordMeasurement<LabelsType>(MeterBase<LabelsType> meter, double measurement, LabelsType labelValues, object listenerCookie)
+        {
+            this.MeasurementRecorded?.Invoke(meter, measurement, LabelTypeConverter<LabelsType>.GetLabelValues(labelValues), listenerCookie);
         }
 
         internal void SubscribeObservableMeter(MeterBase meter, object listenerCookie)

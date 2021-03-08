@@ -16,18 +16,36 @@ namespace Microsoft.Diagnostics.Metric
         }
     }
 
-    public abstract class LabeledMeter<T> : LabeledMeter where T : Meter
+    public abstract class LabeledMeter<UnlabledMeterType> : LabeledMeter where UnlabledMeterType : Meter
     {
-        public T Unlabeled { get; }
+        public UnlabledMeterType Unlabeled { get; }
         public override MetricSource Source => Unlabeled.Source;
         public override string Name => Unlabeled.Name;
         public override Dictionary<string, string> StaticLabels => Unlabeled.StaticLabels;
         public override AggregationConfiguration DefaultAggregation => Unlabeled.DefaultAggregation;
         public override string[] LabelNames => Unlabeled.LabelNames;
         
-        protected LabeledMeter(T unlabeledMeter, string[] labelValues) : base(labelValues)
+        protected LabeledMeter(UnlabledMeterType unlabeledMeter, string[] labelValues) : base(labelValues)
         {
             Unlabeled = unlabeledMeter;
+            MeterCollection.Instance.AddMetric(this);
+        }
+    }
+
+    public abstract class LabeledMeter<UnlabeledMeterType, LabelType> : MeterBase<LabelType> where UnlabeledMeterType : Meter<LabelType>
+    {
+        public UnlabeledMeterType Unlabeled { get; }
+        public LabelType LabelValues { get; }
+        public override MetricSource Source => Unlabeled.Source;
+        public override string Name => Unlabeled.Name;
+        public override Dictionary<string, string> StaticLabels => Unlabeled.StaticLabels;
+        public override AggregationConfiguration DefaultAggregation => Unlabeled.DefaultAggregation;
+        public override string[] LabelNames => Unlabeled.LabelNames;
+
+        protected LabeledMeter(UnlabeledMeterType unlabeledMeter, LabelType labelValues)
+        {
+            Unlabeled = unlabeledMeter;
+            LabelValues = labelValues;
             MeterCollection.Instance.AddMetric(this);
         }
     }

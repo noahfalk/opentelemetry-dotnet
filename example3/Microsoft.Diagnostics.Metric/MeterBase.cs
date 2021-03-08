@@ -9,13 +9,13 @@ namespace Microsoft.Diagnostics.Metric
 {
     public abstract class MeterBase
     {
-        struct ListenerSubscription
+        internal struct ListenerSubscription
         {
             public MeterListener Listener;
             public object Cookie;
         }
 
-        ListenerSubscription[] _subscriptions = Array.Empty<ListenerSubscription>();
+        internal ListenerSubscription[] _subscriptions = Array.Empty<ListenerSubscription>();
 
         public abstract MetricSource Source { get; }
         public abstract string Name { get; }
@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Metric
             ListenerSubscription[] subscriptions = _subscriptions;
             for (int i = 0; i < subscriptions.Length; i++)
             {
-                subscriptions[i].Listener.MeasurementRecorded(this, val, labelValues, subscriptions[i].Cookie);
+                subscriptions[i].Listener.MeasurementRecorded?.Invoke(this, val, labelValues, subscriptions[i].Cookie);
             }
         }
 
@@ -78,4 +78,19 @@ namespace Microsoft.Diagnostics.Metric
             return null;
         }
     }
+
+    public abstract class MeterBase<LabelsType> : MeterBase
+    {
+        protected void RecordMeasurement(double val, LabelsType labelValues)
+        {
+            // this captures a snapshot, _subscriptions array could be replaced while
+            // we are invoking callbacks
+            ListenerSubscription[] subscriptions = _subscriptions;
+            for (int i = 0; i < subscriptions.Length; i++)
+            {
+                subscriptions[i].Listener.RecordMeasurement(this, val, labelValues, subscriptions[i].Cookie);
+            }
+        }
+    }
+
 }

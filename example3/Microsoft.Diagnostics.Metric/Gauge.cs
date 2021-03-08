@@ -37,4 +37,24 @@ namespace Microsoft.Diagnostics.Metric
             RecordMeasurement(d, labelValues);
         }
     }
+
+    public class Gauge<LabelsType> : Meter<LabelsType>
+    {
+        public Gauge(string name, MetricSource source = null)
+            : base(source, name)
+        {
+        }
+
+        public Gauge(string name, Dictionary<string, string> staticLabels, MetricSource source = null) :
+            base(source, name, staticLabels)
+        {
+        }
+
+        public override AggregationConfiguration DefaultAggregation => AggregationConfigurations.LastValue;
+
+        public void Set(double d, LabelsType labelValues)
+        {
+            RecordMeasurement(d, labelValues);
+        }
+    }
 }

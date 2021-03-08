@@ -21,6 +21,7 @@ namespace SimpleExamples
 
         static void RunExamples()
         {
+            new Gauge_StronglyTypedLabels_Example().Run();
             new ObservableCounter_Example();
             new ObservableCounter_DynamicLabels_Example();
             new ObservableCounter_CachedDynamicLabels_Example();

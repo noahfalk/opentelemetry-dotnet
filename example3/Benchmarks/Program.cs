@@ -26,6 +26,14 @@ namespace MyBenchmark
                     case "proto":
                         var proto = BenchmarkRunner.Run<MetricProtoBench>();
                         break;
+
+                    case "tostring":
+                        var toString = BenchmarkRunner.Run<StringConversionBench>();
+                        break;
+
+                    case "stronglabel":
+                        var strongLabel = BenchmarkRunner.Run<StrongLabelTypeBench>();
+                        break;
                 }
             }
         }

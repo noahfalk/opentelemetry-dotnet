@@ -30,7 +30,27 @@ namespace Microsoft.Diagnostics.Metric
             LabelNames = labelNames;
             MeterCollection.Instance.AddMetric(this);
         }
+    }
 
-        
+    public abstract class Meter<LabelsType> : MeterBase<LabelsType>
+    {
+        public override MetricSource Source { get; }
+        public override string Name { get; }
+        public override string[] LabelNames => LabelTypeConverter<LabelsType>.GetLabelNames();
+        public override Dictionary<string, string> StaticLabels { get; }
+
+        protected Meter(MetricSource source, string name)
+            : this(source, name, Meter.EmptyStaticLabels)
+        {
+        }
+
+        protected Meter(MetricSource source, string name, Dictionary<string, string> staticLabels)
+        {
+            Source = source;
+            Name = name;
+            StaticLabels = staticLabels;
+            LabelTypeConverter<LabelsType>.Init();
+            MeterCollection.Instance.AddMetric(this);
+        }
     }
 }

@@ -53,4 +53,40 @@ namespace Microsoft.Diagnostics.Metric
             base.RecordMeasurement(d, LabelValues);
         }
     }
+
+    public class Counter<LabelType> : Meter<LabelType>
+    {
+        public Counter(string name, MetricSource source = null) :
+    base(source, name)
+        {
+        }
+
+        public Counter(string name, Dictionary<string, string> staticLabels, MetricSource source = null) :
+            base(source, name, staticLabels)
+        {
+        }
+
+        public override AggregationConfiguration DefaultAggregation => AggregationConfigurations.Sum;
+
+        public void Add(double d, LabelType labelValues)
+        {
+            base.RecordMeasurement(d, labelValues);
+        }
+
+        public LabeledCounter<LabelType> WithLabels(LabelType labelValues)
+        {
+            //TODO: we should probably memoize this
+            return new LabeledCounter<LabelType>(this, labelValues);
+        }
+    }
+
+    public class LabeledCounter<LabelType> : LabeledMeter<Counter<LabelType>, LabelType>
+    {
+        internal LabeledCounter(Counter<LabelType> unlabled, LabelType labelValues) : base(unlabled, labelValues) { }
+
+        public void Add(double d)
+        {
+            base.RecordMeasurement(d, LabelValues);
+        }
+    }
 }
