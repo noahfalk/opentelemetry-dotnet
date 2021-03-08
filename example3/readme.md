@@ -278,6 +278,30 @@ Counter c = new Counter(source, "hats-sold");
     developer putting metrics directly into an app they fully control it probably has little value.
 
 
+## Should we pre-define dimension names when instruments are first created?
+
+Is is generally assumed that pre-defining dimension names may lead to better performance
+at different stages. If so, we can make a list below.
+
+1. TBD(Where do we see perf gains)
+
+[VL] I am questioning the perf value of pre-defining dimension names. This will
+require we pass dimension values separately and then merge name/values back. In
+addition, there are callouts for ad-hoc passing of KV pairs even with pre-defined
+dimension names. Thus, potentially neutralizing any previous perf gains.
+
+[VL] I think the cognitive load on developers to match dimension names separately
+from dimension values may be significant and prone to errors.
+
+[VL] Proposed answer: No need to pre-define just dimension names. Take list of
+key/value pairs whenever its needed. "Bound" key/value pairs can still be supported
+but no need to make columnar-wise the keys from the values.
+
+[VL] Proposed Ideas: We can define a named set of immutable collection of KV
+pairs (i.e. Labelset). These can be cached for perf as necessary. The recording
+methods can take a collection of these collections (ICollection<LabelSet>) allowing
+a merging to resolve final KV pairs.
+
 ## Should we standardize that all dimension values are strings in the API or do we need to allow a broader set of types?
 
 Proposed answer: Yes, we should standardize dimension values as strings
@@ -546,7 +570,26 @@ is ~13ns per measurement regardless of the data type conversions.
 
 If the SDK had to implement an a listener pattern where the MeasurementRecorded function
 uses a generic T type parameter for the measured value, how easy/hard is that to implement?
-In my chat with Victor it sounded like it gets a little messy, but tractable if we needed to.
+
+[VL]
+Difficulties of using Generics depends on how deeply we want to carry it through
+the API/SDK. It is easier if we take a conversion of T to an internal data type
+sooner than later.
+
+1. What type user provide their data?
+2. What type does our internal system carries?
+3. How much does it matter to keep data type?  Is it part of Identity of Metric?
+
+I think there is a concern about "invisible" lost of fidelity of data.  I think
+this is an education issue where the data point WILL be converted by numerous
+stages in the pipeline regardless. Such concerns may be mitigated if we allow
+them to configure their pipeline to their desired level of precision.
+
+I propose we let user pass in their data type as they have it (either as Generic
+or Overloaded methods). Let them configure the level of data fidelity they want
+in SDK.  We convert in API/SDK appropriately to make that happen.  This includes
+converting to correct OTLP types for output.
+
 
 
 ## LabelSet performance vs usability vs flexibility

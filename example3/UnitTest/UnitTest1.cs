@@ -98,7 +98,9 @@ namespace UnitTest
             var host = Host.CreateDefaultBuilder()
                 .ConfigureServices((hostContext, services) =>
                 {
-                    services.AddSingleton<IMeter>(MeterProvider.Global.GetMeter<UnitTest1>());
+                    services.AddScoped<IMeter>((srvprov) => {
+                        return MeterProvider.Global.GetMeter<UnitTest1>();
+                    });
                     services.AddHostedService<MyService>();
                 })
                 .Build();
@@ -145,7 +147,7 @@ namespace UnitTest
             {
                 logger.LogInformation("Started...");
 
-                var counter = meter.CreateCounter<int>("request", "Dim1", "Dim2");
+                var counter = meter.CreateCounter("request", "Dim1", "Dim2");
 
                 counter.Add(10, "nameValue", "typeValue");
 
@@ -165,7 +167,9 @@ namespace UnitTest
         public void OTelSimpleDI()
         {
             var services = new ServiceCollection();
-            services.AddSingleton<IMeter>(MeterProvider.Global.GetMeter<UnitTest1>());
+            services.AddScoped<IMeter>((srvprov) => {
+                return MeterProvider.Global.GetMeter<UnitTest1>();
+            });
             var serviceProvider = services.BuildServiceProvider();
 
             Task.Run(async () => {
@@ -175,7 +179,7 @@ namespace UnitTest
                 using (var scope = serviceProvider.CreateScope())
                 {
                     var meter = scope.ServiceProvider.GetService<IMeter>();
-                    var counter = meter.CreateCounter<int>("request", "dim1");
+                    var counter = meter.CreateCounter("request", "dim1");
 
                     for (int n = 0; n < 5; n++)
                     {
